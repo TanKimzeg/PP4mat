@@ -1,0 +1,13 @@
+__pycache__/
+
+*.code-workspace
+.vscode/
+
+*.log
+reports/*
+.env/
+
+*.doc
+*.docx
+
+.github/

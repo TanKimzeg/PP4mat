@@ -1,0 +1,29 @@
+"title": 
+    "font":
+        "name": "Consolas"
+        "size": 14
+        "bold": true
+    "alignment": "CENTER"
+
+"text":
+    "font":
+        "name": "Arial"
+        "size": 12
+    "alignment": "LEFT"
+
+"page":
+    "margins":
+        "top": 1.0
+        "bottom": 1.0
+        "left": 1.0
+        "right": 1.0
+    "size": "A4"
+    "orientation": "PORTRAIT"
+
+"citation_min_count": 5
+
+"reference":
+    "min_count": 15
+    "en_min_count": 2
+
+"words_min_count": 10000
