@@ -65,7 +65,7 @@ def formula_checker(document: DocumentObject, format_config: Config) -> None:
         return
     raise NotImplementedError("公式格式检查功能尚未实现")
 
-@singledispatch # TODO:Bug to fix
+@singledispatch # TODO: unable to find the expected picture by Shape.Type
 def figure_checker(win32doc: Any) -> None:
     global errors
     logger.info("检查图片格式...")
@@ -77,15 +77,22 @@ def figure_checker(win32doc: Any) -> None:
     picture_cnt = 0
     for shape in win32doc.Shapes:
         # if shape.Type == win32com.client.constants.msoPicture:
-        if shape.Type == 13:  # msoPicture
+        if shape.Type == 17:  # msoPicture
             picture_cnt += 1
             if shape.Anchor.Paragraphs.Count > 0:
-                caption_p = shape.Anchor.Paragraphs(1)
-                if not caption_p.Range.Text.strip().startswith(f"图{picture_cnt} "):
-                    logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{caption_p.Range.Text.strip()}")
+                anchor_p = shape.Anchor.Paragraphs(1)
+                next_p = anchor_p.Next()
+                while next_p.Range.Text.strip() == "":
+                    next_p = next_p.Next()
+                if next_p is None:
+                    logger.error(f"图片{picture_cnt}未找到对应的标题段落，请检查文档格式。")
+                    errors["图片检测"].append(f"图片{picture_cnt}未找到对应的标题段落")
+                    continue
+                if not next_p.Range.Text.strip().startswith(f"图{picture_cnt} "):
+                    logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}")
                     errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图 {picture_cnt}\"开头")
                 else:
-                    logger.info(f"图片{picture_cnt}的标题格式正确：{caption_p.Range.Text.strip()}")
+                    logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.Range.Text.strip()}")
             else:
                 logger.error(f"图片{picture_cnt}未找到对应的标题段落，请检查文档格式。")
                 errors["图片检测"].append(f"图片{picture_cnt}未找到对应的标题段落")
@@ -103,14 +110,17 @@ def _(document: DocumentObject) -> None:
     picture_cnt = 0
     for i, p in enumerate(paragraphs):
         if p.runs and any(is_img(run) for run in p.runs):
-            picture_cnt += 1
             if i + 1 < len(paragraphs):
                 next_p = paragraphs[i + 1]
-                if next_p.text.strip().startswith(f"图{picture_cnt} "):
-                    logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.text.strip()}")
+                if next_p.text.strip().startswith(f"图"):
+                    picture_cnt += 1
+                    if next_p.text.strip().startswith(f"图{picture_cnt} "):
+                        logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.text.strip()}")
+                    else:
+                        logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}")
+                        errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图 {picture_cnt}\"开头，但实际为：{next_p.text.strip()}")
                 else:
-                    logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}")
-                    errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图 {picture_cnt}\"开头")
+                    logger.warning(f"该对象不以\"图\"开头，可能不是图片：{next_p.text.strip()}")
 
 
 def table_checker(document: DocumentObject, format_config: Config) -> None:
@@ -151,7 +161,7 @@ def reference_checker(reference: list[Paragraph], format_config: Config) -> None
         logger.warning("参考文献格式配置未提供，跳过检查。")
         return
     # Placeholder for reference checking logic
-    pattern = re.compile(r'^\[\d+\]')
+    pattern = re.compile(r'^\[[1-9]\d*\]')
     cnt = 0
     en_cnt = 0
     for p in reference:
@@ -187,14 +197,14 @@ def section_checker(section_location: dict) -> None:
     global errors
     undergraduate_sections = [
         "毕业论文（设计）",
-        "摘 要：", 
-        "关键词：", 
-        "Abstract:", 
-        "Keywords:", 
+        "摘 要", 
+        "关键词", 
+        "Abstract", 
+        "Keywords", 
         "目 录", 
         # "文献综述",
-        "参考文献：", 
-        "附  录："
+        "参考文献", 
+        "附  录"
     ]
     for section in undergraduate_sections:
         if section not in section_location or len(section_location[section]) == 0:
@@ -222,6 +232,27 @@ def survey_checker(document: DocumentObject, format_config: Config) -> None:
         logger.error("文献综述部分缺失或不完整，请检查！")
         errors["文献综述检测"].append("文献综述部分缺失或不完整")
 
+def toc_checker(toc: list[Paragraph], format_config: Config) -> None:
+    global errors
+    logger.info("检查目录格式...")
+    if not toc:
+        logger.warning("目录部分为空，跳过检查。")
+        return
+    import re
+    h1_pattern = re.compile(r"^\d+\.")
+    h2_pattern = re.compile(r"^\d+\.\d+")
+    h3_pattern = re.compile(r"^\d+\.\d+\.\d+")
+    chapter_count = 0
+    for p in toc:
+        if re.match(h1_pattern, p.text.strip()):
+            if not re.match(h2_pattern, p.text.strip()):
+                chapter_count += 1
+            if re.match(h3_pattern, p.text.strip()):
+                logger.error(f"目录项格式错误：{p.text.strip()}，不应包含三级标题")
+                errors["目录检测"].append(f"目录项格式错误：{p.text.strip()}，不应包含三级标题")
+    if format_config.chapter_min_count and chapter_count < format_config.chapter_min_count:
+        logger.error(f"目录章节数量少于{format_config.chapter_min_count}章，当前数量为{chapter_count}章，请检查！")
+        errors["目录检测"].append(f"目录章节数量少于{format_config.chapter_min_count}章，当前数量为{chapter_count}章")
 
 
 def page_checker(document: DocumentObject, format_config: Config) -> None:
@@ -281,19 +312,20 @@ def check_format(docx_path: str,format_config:Config) -> tuple[dict,dict]:
     word = win32com.client.Dispatch("Word.Application")
     win32doc = word.Documents.Open(os.path.abspath(docx_path))
     cover_info = utils.cover_info_from_textbox(win32doc)
-    figure_checker(win32doc)
+    check_cover_info(cover_info)
+
+    # figure_checker(win32doc)
     win32doc.Close()
     word.Quit()
-
-    check_cover_info(cover_info)
 
     document = Document(docx_path)
     sections = utils.get_sections(document)
     section_checker(sections)
+    toc_checker(sections["目 录"], format_config)
     survey_checker(document, format_config)
     table_checker(document, format_config)
-    # figure_checker(document)
-    reference_checker(sections["参考文献："], format_config)
+    figure_checker(document)
+    reference_checker(sections["参考文献"], format_config)
 
     citation_count_checker(sections, format_config)
     check_enough_words(document, format_config)

@@ -4,8 +4,6 @@ from config_converter import Config
 import logging
 from config_converter import convert_config
 from format_checker import check_format
-from format_checker.utils import cover_info_from_textbox
-from docx import Document
 
 def logger_config(debug_flag:bool=False) -> None:
     loggers = [

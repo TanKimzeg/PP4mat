@@ -48,7 +48,7 @@ def setup_logger(name=__package__, level=logging.INFO) -> logging.Logger:
                 os.makedirs('./error_logs')
             file_handler = logging.FileHandler(f'./error_logs/{datetime.datetime.now().strftime("%H%M%S")}.log', encoding='utf-8')
             file_handler.setFormatter(file_formatter)
-            file_handler.setLevel(logging.ERROR)
+            file_handler.setLevel(logging.WARNING)
             logger.addHandler(file_handler)
         # 创建控制台处理器
         console_handler = logging.StreamHandler(sys.stdout)

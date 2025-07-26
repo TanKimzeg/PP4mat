@@ -71,16 +71,29 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
                     break
             if end: break
             if begin:
-                undergraduate_location[section].append(paragraphs[p])
+                undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p])
             if section in paragraphs[p].text.strip()[:10]:
                 begin = True
             p += 1
         if begin == False:
             p = 0
 
+    #  分割 目录 和 正文
+    if "目 录" in undergraduate_location:
+        toc = undergraduate_location["目 录"]
+        text_start = False
+        for idx, p in enumerate(toc):
+            if p.text.strip().startswith("1.引 言"):
+                if not text_start:
+                    text_start = True
+                    continue
+                else:
+                    undergraduate_location["正文"] = toc[idx:]
+                    undergraduate_location["目 录"] = toc[:idx]
+                    break
     return undergraduate_location
 
-@deprecated(version='0.1', reason="Use cover_info_from_textbox instead")
+@deprecated(version='0.1.0', reason="Use cover_info_from_textbox instead")
 def cover_info(cover_section: list[Paragraph]) :
     infomation = [
         "题目：",
@@ -161,13 +174,14 @@ def extract_textbox_content(doc) -> list[str]:
 def count_citations(locations: dict[str, list[Paragraph]]) -> int:
     cnt = 0
     import re
-    citation_pattern = r'\[\d+\]'
+    citation_pattern = r'\[[1-9]\d*\]'
     for s,pl in locations.items():
-        if s != "参考文献：":
+        if s != "参考文献":
             for p in pl:
-                cnt += len(re.findall(citation_pattern, p.text))
-                if len(re.findall(citation_pattern, p.text)) > 0:
-                    logger.debug(f"段落：{p.text.strip()[:20]}... 包含 {len(re.findall(citation_pattern, p.text))} 个引用")
+                sub_string = re.findall(citation_pattern, p.text)
+                cnt += len(sub_string)
+                if len(sub_string) > 0:
+                    logger.debug(f"段落：{p.text.strip()[:5]}...{'...'.join(sub_string)}... 包含 {len(sub_string)} 个引用")
     return cnt
 
 if __name__ == "__main__":

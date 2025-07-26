@@ -45,3 +45,4 @@ class Config:
         self.heading6_config:dict | None = configs.get('heading6', None)
         self.words_min_count:int | None = configs.get('words_min_count', None)
         self.citation_min_count:int | None = configs.get('citation_min_count', None)
+        self.chapter_min_count: int | None = configs.get('chapter_min_count', None)

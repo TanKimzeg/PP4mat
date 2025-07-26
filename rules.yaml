@@ -22,6 +22,8 @@
 
 "citation_min_count": 5
 
+"chapter_min_count": 5
+
 "reference":
     "min_count": 15
     "en_min_count": 2
