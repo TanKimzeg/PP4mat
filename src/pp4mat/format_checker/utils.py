@@ -1,5 +1,5 @@
 from deprecated import deprecated
-from .logger import setup_logger
+from pp4mat.logger import setup_logger
 from docx.text.paragraph import Paragraph
 from docx.document import Document as DocumentObject
 
@@ -183,24 +183,3 @@ def count_citations(locations: dict[str, list[Paragraph]]) -> int:
                 if len(sub_string) > 0:
                     logger.debug(f"段落：{p.text.strip()[:5]}...{'...'.join(sub_string)}... 包含 {len(sub_string)} 个引用")
     return cnt
-
-if __name__ == "__main__":
-    from docx import Document
-    doc = Document("paper.docx")
-
-    def test_get_size():
-        print(correct_size(doc.paragraphs[3:4], 12))
-
-    def test_get_indentation(p:int):
-        para = doc.paragraphs[p]  # Get the third paragraph
-        print(f"The {p}th paragraph's indentation: ",get_indentation(para))
-
-    def test_section_location():
-        undergraduate_location = get_sections(doc)
-        for section, paras in undergraduate_location.items():
-            print(f"Section: {section}, Paragraphs: {len(paras)}")
-            for para in paras:
-                print(f"  - {para.text.strip()}")
-    # test_get_indentation(1)
-    test_get_size()
-    test_section_location()

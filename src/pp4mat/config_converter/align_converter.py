@@ -1,4 +1,4 @@
-from config_converter.config_handle import Config
+from pp4mat.config_converter.config_handle import FormatConfig
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.document import Document as DocumentObject
 
@@ -46,7 +46,7 @@ def to_string(alignment: WD_ALIGN_PARAGRAPH) -> str:
     
     return alignments.get(alignment, 'none')
 
-def align_convert(config: Config) -> None:
+def align_convert(config: FormatConfig) -> None:
     # Convert alignment values
     if config.title_config and 'alignment' in config.title_config:
         config.title_config['alignment'] = to_enum(config.title_config['alignment'])

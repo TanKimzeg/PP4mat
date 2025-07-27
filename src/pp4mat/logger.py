@@ -1,11 +1,13 @@
 import logging
 import sys
 import colorama
+import datetime
+import os
 
 # Initialize colorama for Windows compatibility
 colorama.init(autoreset=True)
 
-def setup_logger(name=__package__, level=logging.INFO):
+def setup_logger(name=__package__, level=logging.INFO, log_dir:str|None=None) -> logging.Logger:
     """创建并配置日志记录器"""
     class ColorFormatter(logging.Formatter):
         """自定义日志格式化器，添加颜色到日志级别"""
@@ -25,28 +27,32 @@ def setup_logger(name=__package__, level=logging.INFO):
     # 创建日志记录器
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
+    
     # 禁用传播
     logger.propagate = False
-    
+
     # 避免重复添加处理器（防止多次调用时重复日志）
     if not logger.handlers:
         # 创建格式化器
-        formatter = ColorFormatter(
+        consoler_formatter = ColorFormatter(
+            '[%(asctime)s-%(levelname)s] %(name)s: %(message)s',
+            datefmt='%H:%M:%S'
+        )
+        file_formatter = logging.Formatter(
             '[%(asctime)s-%(levelname)s] %(name)s: %(message)s',
             datefmt='%H:%M:%S'
         )
         
+        if logger.level != logging.DEBUG and log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+            file_handler = logging.FileHandler(f'{log_dir}/{datetime.datetime.now().strftime("%H%M%S")}.log', encoding='utf-8')
+            file_handler.setFormatter(file_formatter)
+            file_handler.setLevel(logging.WARNING)
+            logger.addHandler(file_handler)
         # 创建控制台处理器
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        
-        # 可选：创建文件处理器
-        # file_handler = logging.FileHandler('package_logs.log')
-        # file_handler.setFormatter(formatter)
-        
-        # 添加处理器
+        console_handler.setFormatter(consoler_formatter)
         logger.addHandler(console_handler)
-        # logger.addHandler(file_handler)
+        # 疑似logger的Bug,这两行Handler的顺序不能交换,否则日志文件会输出控制台的颜色代码
     
     return logger

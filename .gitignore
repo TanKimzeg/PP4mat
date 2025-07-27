@@ -1,11 +1,11 @@
 __pycache__/
+dist/
 
-*.code-workspace
 .vscode/
 
 *.log
 reports/*
-.env/
+.venv/
 
 *.doc
 *.docx

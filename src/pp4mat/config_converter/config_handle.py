@@ -1,12 +1,23 @@
+import sys
+import logging
+from argparse import Namespace
+from dataclasses import dataclass
 from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
-import sys
-from .logger import setup_logger
+from pp4mat.logger import setup_logger
 
 logger = setup_logger(__package__)
 
-class Config:
-    def __init__(self,config_path:str) -> None:
+@dataclass
+class Args(Namespace):
+    docx: str
+    config: str
+    debug: bool
+    log_dir: str
+    output: str
+
+class FormatConfig:
+    def __init__(self, config_path: str) -> None:
         self.yaml = YAML()
         self.config_path = config_path
         self.reload()
@@ -46,3 +57,14 @@ class Config:
         self.words_min_count:int | None = configs.get('words_min_count', None)
         self.citation_min_count:int | None = configs.get('citation_min_count', None)
         self.chapter_min_count: int | None = configs.get('chapter_min_count', None)
+        
+class Config():
+    def __init__(self,args: Namespace) -> None:
+        self.args = Args(**vars(args))
+        self.docx = self.args.docx
+        self.config_path = self.args.config
+        self.log_dir = self.args.log_dir
+        self.output = self.args.output
+        self.debug = self.args.debug
+        logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
+        self.format_config = FormatConfig(self.config_path)

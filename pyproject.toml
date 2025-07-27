@@ -1,0 +1,22 @@
+[project]
+name = "pp4mat"
+version = "0.1.0"
+description = "A Python package for checking docx academic papers."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "colorama>=0.4.6",
+    "deprecated>=1.2.18",
+    "jinja2>=3.1.6",
+    "python-docx>=1.2.0",
+    "pywin32>=311",
+    "ruamel-yaml>=0.18.14",
+]
+
+[[tool.uv.index]]
+url = "https://pypi.mirrors.ustc.edu.cn/simple/"
+default = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

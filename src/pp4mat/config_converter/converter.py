@@ -1,7 +1,7 @@
-from .config_handle import Config
-from .align_converter import align_convert
+from pp4mat.config_converter.config_handle import FormatConfig
+from pp4mat.config_converter.align_converter import align_convert
 
-def convert_config(config: Config) -> None:
+def convert_config(config: FormatConfig) -> None:
     """
     Converts the configuration values to the appropriate types for use in python-docx.
     
