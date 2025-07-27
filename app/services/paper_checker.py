@@ -29,7 +29,6 @@ def process_paper(file: UploadFile):
     config = Config(args)
     convert_config(config.format_config)
     errors, cover_info = check_format(config)
-    print(errors)
 
     # 生成报告
     if errors:
