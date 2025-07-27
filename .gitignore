@@ -1,5 +1,7 @@
 __pycache__/
 dist/
+frontend/node_modules/
+frontend/package-lock.json
 
 .vscode/
 
