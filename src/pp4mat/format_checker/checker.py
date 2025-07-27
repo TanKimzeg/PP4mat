@@ -11,7 +11,6 @@ from docx.text.paragraph import Paragraph
 import win32com.client
 
 logger = setup_logger(__package__)
-errors:dict[str,list[str]] = defaultdict(list)
 
 def title_checker(document: DocumentObject, format_config: FormatConfig) -> None:
     logger.info("检查标题格式...")
@@ -42,12 +41,10 @@ def title_checker(document: DocumentObject, format_config: FormatConfig) -> None
     #     logger.error("标题字体大小错误")
 
 def heading_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    global errors
     logger.info("检查小节标题格式...")
     raise NotImplementedError
 
 def text_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    global errors
     logger.info("检查正文格式...")
     config = format_config.text_config
     if config is None:
@@ -57,7 +54,6 @@ def text_checker(document: DocumentObject, format_config: FormatConfig) -> None:
     raise NotImplementedError("正文格式检查功能尚未实现")
 
 def formula_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    global errors
     logger.info("检查公式格式...")
     config = format_config.formula_config
     if config is None:
@@ -66,8 +62,7 @@ def formula_checker(document: DocumentObject, format_config: FormatConfig) -> No
     raise NotImplementedError("公式格式检查功能尚未实现")
 
 @singledispatch # TODO: unable to find the expected picture by Shape.Type
-def figure_checker(win32doc: Any) -> None:
-    global errors
+def figure_checker(win32doc: Any, errors: dict[str, list[str]]) -> None:
     logger.info("检查图片格式...")
     # config = format_config.figure_config
     # if config is None:
@@ -98,7 +93,7 @@ def figure_checker(win32doc: Any) -> None:
                 errors["图片检测"].append(f"图片{picture_cnt}未找到对应的标题段落")
 
 @figure_checker.register(DocumentObject)
-def _(document: DocumentObject) -> None:
+def _(document: DocumentObject, errors: dict[str, list[str]]) -> None:
     def is_img(run: Any) -> bool:
         drawing_elements = run._element.xpath('.//w:drawing')
         for drawing in drawing_elements:
@@ -123,8 +118,8 @@ def _(document: DocumentObject) -> None:
                     logger.warning(f"该对象不以\"图\"开头，可能不是图片：{next_p.text.strip()}")
 
 
-def table_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    global errors
+def table_checker(document: DocumentObject, 
+                  format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     logger.info("检查表格格式...")
     # config = format_config.table_config
     # if config is None:
@@ -153,7 +148,8 @@ def table_checker(document: DocumentObject, format_config: FormatConfig) -> None
             errors["表格检测"].append(f"表格{i+1}未找到对应的标题段落")
     
 
-def reference_checker(reference: list[Paragraph], format_config: FormatConfig) -> None:
+def reference_checker(reference: list[Paragraph], 
+                      format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     import re
     logger.info("检查参考文献格式...")
     config = format_config.reference_config
@@ -182,7 +178,8 @@ def reference_checker(reference: list[Paragraph], format_config: FormatConfig) -
     else:
         logger.info(f"英文参考文献数量满足要求，当前数量为{en_cnt}条。")
     
-def citation_count_checker(location: dict[str, list[Paragraph]], format_config: FormatConfig) -> None:
+def citation_count_checker(location: dict[str, list[Paragraph]], 
+                           format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     logger.info("检查脚注数量")
     config = format_config.citation_min_count
     if config is None:
@@ -193,8 +190,7 @@ def citation_count_checker(location: dict[str, list[Paragraph]], format_config: 
         logger.error(f"脚注数量少于{config}条，当前数量为{citation_count}条，请检查！")
         errors["脚注检测"].append(f"脚注数量少于{config}条，当前数量为{citation_count}条")
 
-def section_checker(section_location: dict) -> None:
-    global errors
+def section_checker(section_location: dict, errors: dict[str, list[str]]) -> None:
     undergraduate_sections = [
         "毕业论文（设计）",
         "摘 要", 
@@ -213,8 +209,7 @@ def section_checker(section_location: dict) -> None:
         else:
             logger.info(f"\"{section}\"部分存在 {len(section_location[section])} 个段落")
 
-def survey_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    global errors
+def survey_checker(document: DocumentObject, format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     keywords = [
         "综述",
         "国内外",
@@ -232,8 +227,7 @@ def survey_checker(document: DocumentObject, format_config: FormatConfig) -> Non
         logger.error("文献综述部分缺失或不完整，请检查！")
         errors["文献综述检测"].append("文献综述部分缺失或不完整")
 
-def toc_checker(toc: list[Paragraph], format_config: FormatConfig) -> None:
-    global errors
+def toc_checker(toc: list[Paragraph], format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     logger.info("检查目录格式...")
     if not toc:
         logger.warning("目录部分为空，跳过检查。")
@@ -274,7 +268,7 @@ def abstract_checker(abstact: list[Paragraph], format_config: FormatConfig) -> N
         return
     raise NotImplementedError("摘要格式检查功能尚未实现")
 
-def check_enough_words(document: DocumentObject, format_config: FormatConfig) -> None:
+def check_enough_words(document: DocumentObject, format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     logger.info("检查文档字数...")
     config = format_config.words_min_count
     if config is None:
@@ -287,7 +281,7 @@ def check_enough_words(document: DocumentObject, format_config: FormatConfig) ->
     else:
         logger.info(f"文档字数满足要求，当前字数为{word_count}字。")
 
-def check_cover_info(info: dict[str, str]) -> None:
+def check_cover_info(info: dict[str, str], errors: dict[str, list[str]]) -> None:
     infomation = [
         "题目",
         "学号",
@@ -305,7 +299,7 @@ def check_cover_info(info: dict[str, str]) -> None:
 
 
 def check_format(config: Config) -> tuple[dict,dict]:
-    global errors 
+    errors:dict[str,list[str]] = defaultdict(list)
     docx_path = config.docx
     format_config: FormatConfig = config.format_config
     setup_logger(__package__,level=config.debug, log_dir=config.log_dir)
@@ -315,7 +309,7 @@ def check_format(config: Config) -> tuple[dict,dict]:
     word = win32com.client.Dispatch("Word.Application")
     win32doc = word.Documents.Open(os.path.abspath(docx_path))
     cover_info = utils.cover_info_from_textbox(win32doc)
-    check_cover_info(cover_info)
+    check_cover_info(cover_info, errors)
 
     # figure_checker(win32doc)
     win32doc.Close()
@@ -323,14 +317,14 @@ def check_format(config: Config) -> tuple[dict,dict]:
 
     document = Document(docx_path)
     sections = utils.get_sections(document)
-    section_checker(sections)
-    toc_checker(sections["目 录"], format_config)
-    survey_checker(document, format_config)
-    table_checker(document, format_config)
-    figure_checker(document)
-    reference_checker(sections["参考文献"], format_config)
+    section_checker(sections, errors)
+    toc_checker(sections["目 录"], format_config, errors)
+    survey_checker(document, format_config, errors)
+    table_checker(document, format_config, errors)
+    figure_checker(document, errors)
+    reference_checker(sections["参考文献"], format_config, errors)
 
-    citation_count_checker(sections, format_config)
-    check_enough_words(document, format_config)
+    citation_count_checker(sections, format_config, errors)
+    check_enough_words(document, format_config, errors)
 
     return errors, cover_info
