@@ -2,15 +2,15 @@ import os
 from jinja2 import Template
 from datetime import datetime
 
-def generate_report(paper_info:dict[str,str], errors: dict[str, list[str]], output_path: str) -> None:
+def generate_report(paper_info:dict[str,str], 
+                    errors: dict[str, list[str]], output_path: str):
     """
     使用模板生成 Markdown 格式的报告
     """
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    template = Template("""
-# 论文格式检查报告
+    template = Template("""# 论文格式检查报告
                         
 **论文标题**: {{ title }}
 
@@ -40,3 +40,4 @@ def generate_report(paper_info:dict[str,str], errors: dict[str, list[str]], outp
     )
     with open(os.path.join(output_path, f"{paper_info.get("姓名","无名氏")}-{datetime.now().strftime("%H_%M_%S")}.md"), 'w', encoding='utf-8') as f:
         f.write(report)
+    return report

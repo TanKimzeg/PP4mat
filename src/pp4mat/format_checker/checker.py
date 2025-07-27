@@ -118,7 +118,7 @@ def _(document: DocumentObject) -> None:
                         logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.text.strip()}")
                     else:
                         logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}")
-                        errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图 {picture_cnt}\"开头，但实际为：{next_p.text.strip()}")
+                        errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt}\"开头，但实际为：{next_p.text.strip()}")
                 else:
                     logger.warning(f"该对象不以\"图\"开头，可能不是图片：{next_p.text.strip()}")
 

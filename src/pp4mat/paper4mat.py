@@ -1,5 +1,5 @@
 import argparse
-from pp4mat.config_converter import Config, convert_config
+from pp4mat.config_converter import Config, convert_config, Args
 from pp4mat.format_checker import check_format
 from pp4mat.report import generate_report
 
@@ -15,6 +15,13 @@ def main() -> None:
     args = parser.parse_args()
 
     # Load the format rules
+    args = Args(
+        docx=args.docx,
+        config=args.config,
+        debug=args.debug,
+        log_dir=args.log_dir,
+        output=args.output
+    )
     config = Config(args)
     convert_config(config.format_config)
 
@@ -23,10 +30,7 @@ def main() -> None:
     errors, cover_info = check_format(config)
     
     if errors:
-        generate_report(
-            cover_info,
-            errors, 
-            config.output)
+        generate_report(cover_info, errors, config.output)
         print(f"报告已生成，请查看{config.output}目录下的 Markdown 文件。")
     else:
         print("格式检查通过，没有发现错误！")

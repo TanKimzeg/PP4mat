@@ -13,7 +13,7 @@ class Args(Namespace):
     docx: str
     config: str
     debug: bool
-    log_dir: str
+    log_dir: str | None
     output: str
 
 class FormatConfig:
@@ -59,12 +59,11 @@ class FormatConfig:
         self.chapter_min_count: int | None = configs.get('chapter_min_count', None)
         
 class Config():
-    def __init__(self,args: Namespace) -> None:
-        self.args = Args(**vars(args))
-        self.docx = self.args.docx
-        self.config_path = self.args.config
-        self.log_dir = self.args.log_dir
-        self.output = self.args.output
-        self.debug = self.args.debug
+    def __init__(self,args: Args) -> None:
+        self.docx = args.docx
+        self.config_path = args.config
+        self.log_dir = args.log_dir
+        self.output = args.output
+        self.debug = args.debug
         logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
         self.format_config = FormatConfig(self.config_path)
