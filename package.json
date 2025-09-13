@@ -1,0 +1,16 @@
+{
+  "name": "pp4mat-root",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "api:dev": "uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "api:serve": "uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --workers 2",
+    "web:dev": "npm run dev --prefix frontend",
+    "web:build": "npm run build --prefix frontend",
+    "web:preview": "npm run preview --prefix frontend",
+    "web:start": "npm run start --prefix frontend"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

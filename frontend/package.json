@@ -8,9 +8,10 @@
     "react-markdown": "^10.1.0"
   },
   "scripts": {
-    "start": "vite",
+    "dev": "vite dev --host 127.0.0.1 --port 5174",
     "build": "vite build",
-    "dev": "vite"
+    "preview": "vite preview --host 127.0.0.1 --port 8080",
+    "start": "vite --host 0.0.0.0 --port 80"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
