@@ -16,6 +16,11 @@ dependencies = [
     "uvicorn>=0.35.0",
 ]
 
+[tool.uv]
+environments = [
+    "sys_platform == 'win32'",
+]
+
 [[tool.uv.index]]
 url = "https://pypi.mirrors.ustc.edu.cn/simple/"
 default = true
