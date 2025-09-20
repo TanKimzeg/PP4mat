@@ -20,7 +20,7 @@ function App() {
         formData.append("file", file);
 
         try {
-            const response = await fetch("http://localhost:8000/upload/", {
+            const response = await fetch("/upload/", {
                 method: "POST",
                 body: formData,
             });
@@ -41,11 +41,9 @@ function App() {
             {result && (
                 <div>
                     <h2>检测结果</h2>
-                    {result.status === "fail" ? (
+                    {
                         <ReactMarkdown>{result.report}</ReactMarkdown>
-                    ) : (
-                        <p>{result.message}</p>
-                    )}
+                    }
                 </div>
             )}
         </div>
