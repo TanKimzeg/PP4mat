@@ -94,7 +94,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
     return undergraduate_location
 
 @deprecated(version='0.1.0', reason="Use cover_info_from_textbox instead")
-def cover_info(cover_section: list[Paragraph]) :
+def cover_info(cover_section: list[Paragraph]) -> dict[str, str]:
     infomation = [
         "题目：",
         "姓名：",
@@ -109,9 +109,9 @@ def cover_info(cover_section: list[Paragraph]) :
     for p in cover_section:
         for keyword in infomation:
             if keyword in p.text:
-                val = p.text.split(keyword)[-1].strip()
-                extract_info[keyword] = val
-                logger.info(f"提取到信息：{keyword} {val}")
+                val = p.text.split(keyword)[-1].strip().replace('_', '').split()[0]
+                extract_info[keyword[:-1]] = val
+                logger.warning(f"提取到封面信息：{keyword} {val},没用使用文本框!")
     return extract_info
 
 def cover_info_from_textbox(win32doc) -> dict[str, str]:

@@ -306,19 +306,17 @@ def check_format(config: Config) -> tuple[dict,dict]:
     format_config: FormatConfig = config.format_config
     setup_logger(__package__,level=config.debug, log_dir=config.log_dir)
     
+    document = Document(docx_path)
+    sections = utils.get_sections(document)
     # pywin32支持更复杂的Word文档操作,本项目中,论文的封面信息存储在文本框中,
     # 因此需要使用pywin32来提取文本框内容;检测图片和图题的关联也需要pywin32来实现.
     word = win32com.client.Dispatch("Word.Application")
     win32doc = word.Documents.Open(os.path.abspath(docx_path))
     cover_info = utils.cover_info_from_textbox(win32doc)
-    check_cover_info(cover_info, errors)
-
-    # figure_checker(win32doc)
     win32doc.Close()
     word.Quit()
-
-    document = Document(docx_path)
-    sections = utils.get_sections(document)
+    cover_info.update(utils.cover_info(sections["毕业论文（设计）"]))
+    check_cover_info(cover_info, errors)
     section_checker(sections, errors)
     toc_checker(sections["目 录"], format_config, errors)
     survey_checker(document, format_config, errors)
