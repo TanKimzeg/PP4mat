@@ -205,7 +205,9 @@ def section_checker(section_location: dict, errors: dict[str, list[str]]) -> Non
     for section in undergraduate_sections:
         if section not in section_location or len(section_location[section]) == 0:
             logger.error(f"\"{section}\"缺失或位置不正确")
-            errors["章节检测"].append(f"\"{section}\"缺失或位置不正确")
+            errors["章节检测"].append(f"\"{section}\"缺失或位置不正确!请使用模板,注意空格、冒号")
+            if section == "目 录":
+                errors["章节检测"].append("不支持使用Word自动生成的目录,请手动编写目录")
         else:
             logger.info(f"\"{section}\"部分存在 {len(section_location[section])} 个段落")
 
