@@ -70,7 +70,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
                     end = True
                     break
             if end: break
-            if section in paragraphs[p].text.strip()[:10]:
+            if paragraphs[p].text.strip().startswith(section):
                 begin = True
             if begin:
                 undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p])
