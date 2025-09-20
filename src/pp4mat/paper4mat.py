@@ -27,13 +27,14 @@ def main() -> None:
 
 
     # Check the format
-    errors, cover_info = check_format(config)
-    
-    if errors:
-        generate_report(cover_info, errors, config.output)
+    try:
+        errors, cover_info = check_format(config)
+        
+        generate_report(args.docx, cover_info, errors, config.output)
         print(f"报告已生成，请查看{config.output}目录下的 Markdown 文件。")
-    else:
-        print("格式检查通过，没有发现错误！")
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

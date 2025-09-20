@@ -31,8 +31,5 @@ def process_paper(file: UploadFile):
     errors, cover_info = check_format(config)
 
     # 生成报告
-    if errors:
-        report = generate_report(cover_info, errors, REPORT_DIR)
-        return {"status": "fail", "report": report}
-    else:
-        return {"status": "success", "message": "格式检查通过！"}
+    report = generate_report(filename, cover_info, errors, REPORT_DIR)
+    return {"status": "fail", "report": report}
