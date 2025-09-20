@@ -85,7 +85,7 @@ def figure_checker(win32doc: Any, errors: dict[str, list[str]]) -> None:
                     continue
                 if not next_p.Range.Text.strip().startswith(f"图{picture_cnt} "):
                     logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}")
-                    errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图 {picture_cnt}\"开头")
+                    errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt}\"开头，但实际为：{next_p.Range.Text.strip()}")
                 else:
                     logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.Range.Text.strip()}")
             else:
@@ -140,7 +140,7 @@ def table_checker(document: DocumentObject,
             header_p = paragraphs[table_index] 
             if not header_p.text.strip().startswith(f"表{i+1} "):
                 logger.error(f"表格{i+1}的标题格式错误，应该以\"表{i+1} \"开头，但实际为：{header_p.text.strip()}")
-                errors["表格检测"].append(f"表格{i+1}的标题格式错误，应该以\"表 {i+1}\"开头")
+                errors["表格检测"].append(f"表格{i+1}的标题格式错误，应该以\"表{i+1}\"开头，但实际为：{header_p.text.strip()}")
             else:
                 logger.info(f"表格{i+1}的标题格式正确：{header_p.text.strip()}")
         else:
