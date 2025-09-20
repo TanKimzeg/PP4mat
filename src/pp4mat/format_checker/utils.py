@@ -70,12 +70,12 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
                     end = True
                     break
             if end: break
-            if begin:
-                undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p])
             if section in paragraphs[p].text.strip()[:10]:
                 begin = True
+            if begin:
+                undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p])
             p += 1
-        if begin == False:
+        if begin == False or end == False:
             p = 0
 
     #  分割 目录 和 正文
@@ -135,7 +135,7 @@ def cover_info_from_textbox(win32doc) -> dict[str, str]:
     ]
     info = dict()
     textbox_content = extract_textbox_content(win32doc)
-    for i in range(len(textbox_content)):
+    for i in range(min(len(textbox_content), len(infomation))):
         content = textbox_content[i]
         info[infomation[i][:-1]] = content.strip()
         logger.debug(f"提取到信息：{infomation[i]} {content.strip()}")
