@@ -10,7 +10,7 @@ def generate_report(filename: str, paper_info:dict[str,str],
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    template = Template("""# 论文格式检查报告
+    template = Template("""# 论文格式检测结果
                         
 **论文标题**: {{ title }}
 
