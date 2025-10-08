@@ -61,9 +61,8 @@ class FormatConfig:
 class Config():
     def __init__(self,args: Args) -> None:
         self.docx = args.docx
-        self.config_path = args.config
         self.log_dir = args.log_dir
         self.output = args.output
         self.debug = args.debug
         logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
-        self.format_config = FormatConfig(self.config_path)
+        self.format_config = FormatConfig(args.config)
