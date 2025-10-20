@@ -72,7 +72,7 @@ function App() {
     return (
         <div className="main-wrapper">
             <div className="card">
-                <h1 className="tool-title">论文格式检测工具</h1>
+                <h1 className="tool-title">本科毕业论文格式检测</h1>
                 <form onSubmit={handleSubmit}>
                     <div
                         ref={dropRef}
@@ -96,7 +96,7 @@ function App() {
                         </div>
                     </div>
                 )}
-                <footer>© {new Date().getFullYear()} Paper4mat</footer>
+                <footer>© {new Date().getFullYear()} PPSUC · Paper4mat</footer>
             </div>
         </div>
     );
