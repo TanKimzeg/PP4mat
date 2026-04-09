@@ -82,10 +82,12 @@ function App() {
                         onDrop={handleDrop}
                     >
                         <p style={{margin:"0 0 .4rem"}}>{file ? `已选择：${file.name}` : "拖拽或点击选择 .docx 文件"}</p>
-                        <small>支持单文件，自动进行格式规则检测</small>
+                        <small style={{marginTop: "-0.4rem"}}>
+                            识别结果仅供参考，请以学校提供的论文模板与最新规范为准。
+                        </small>
                         <input id="file-input-hidden" type="file" onChange={handleFileChange} accept=".docx" />
                         <button type="button" className="custom-file-btn" onClick={pickFile}>选择文件</button>
-                        <button type="submit" className="submit-btn" disabled={!file || uploading}>{uploading ? "上传中..." : "上传并检测"}</button>
+                        <button type="submit" className="submit-btn" disabled={!file || uploading}>{uploading ? "检测中..." : "上传并检测"}</button>
                     </div>
                 </form>
                 {error && <div className="result-panel" style={{borderColor:'#fca5a5', background:'#fff1f2'}}><h2>错误</h2><p style={{color:'#b91c1c'}}>{error}</p></div>}
