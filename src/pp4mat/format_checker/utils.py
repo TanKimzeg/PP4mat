@@ -109,9 +109,9 @@ def cover_info(cover_section: list[Paragraph]) -> dict[str, str]:
     for p in cover_section:
         for keyword in infomation:
             if keyword in p.text:
-                val = p.text.split(keyword)[-1].strip().replace('_', '').split()[0]
+                val = p.text.split(keyword)[-1].strip().replace('_', '')
                 extract_info[keyword[:-1]] = val
-                logger.warning(f"提取到封面信息：{keyword} {val},没用使用文本框!")
+                logger.warning(f"提取到封面信息：{keyword} {val},没有使用文本框!")
     return extract_info
 
 def cover_info_from_textbox(win32doc) -> dict[str, str]:
