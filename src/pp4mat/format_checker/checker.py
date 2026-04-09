@@ -84,8 +84,8 @@ def figure_checker(win32doc: Any, errors: dict[str, list[str]]) -> None:
                     errors["图片检测"].append(f"图片{picture_cnt}未找到对应的标题段落")
                     continue
                 if not next_p.Range.Text.strip().startswith(f"图{picture_cnt} "):
-                    logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}")
-                    errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}")
+                    logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}。请注意空格、编号。")
+                    errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}。请注意空格、编号。")
                 else:
                     logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.Range.Text.strip()}")
             else:
@@ -112,8 +112,8 @@ def _(document: DocumentObject, errors: dict[str, list[str]]) -> None:
                     if next_p.text.strip().startswith(f"图{picture_cnt} "):
                         logger.info(f"图片{picture_cnt}的标题格式正确：{next_p.text.strip()}")
                     else:
-                        logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}")
-                        errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt}\"开头，但实际为：{next_p.text.strip()}")
+                        logger.error(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}。请注意空格、编号。")
+                        errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.text.strip()}。请注意空格、编号。")
                 else:
                     logger.warning(f"该对象不以\"图\"开头，可能不是图片：{next_p.text.strip()}")
 
@@ -207,7 +207,7 @@ def section_checker(section_location: dict, errors: dict[str, list[str]]) -> Non
             logger.error(f"\"{section}\"缺失或位置不正确")
             errors["章节检测"].append(f"\"{section}\"缺失或位置不正确!请使用模板,注意空格、冒号")
             if section == "目 录":
-                errors["章节检测"].append("不支持使用Word自动生成的目录,请手动编写目录")
+                errors["章节检测"].append("暂不支持使用Word生成的TOC目录")
         else:
             logger.info(f"\"{section}\"部分存在 {len(section_location[section])} 个段落")
 
@@ -315,7 +315,7 @@ def check_format(config: Config) -> tuple[dict,dict]:
     cover_info = utils.cover_info_from_textbox(win32doc)
     win32doc.Close()
     word.Quit()
-    cover_info.update(utils.cover_info(sections["毕业论文（设计）"]))
+    # cover_info.update(utils.cover_info(sections["毕业论文（设计）"]))
     check_cover_info(cover_info, errors)
     section_checker(sections, errors)
     toc_checker(sections["目 录"], format_config, errors)
