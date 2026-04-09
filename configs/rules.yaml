@@ -20,6 +20,16 @@
     "size": "A4"
     "orientation": "PORTRAIT"
 
+"table":
+    "font_name": "宋体"
+    "font_size": 10.5  # 五号
+    "alignment": "CENTER"
+
+"figure":
+    "font_name": "宋体"
+    "font_size": 10.5  # 五号
+    "alignment": "CENTER"
+
 "citation_min_count": 5
 
 "chapter_min_count": 5
@@ -27,5 +37,7 @@
 "reference":
     "min_count": 15
     "en_min_count": 2
+    "font_name": "宋体"
+    "font_size": 10.5  # 五号
 
 "words_min_count": 10000
