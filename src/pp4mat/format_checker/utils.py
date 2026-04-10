@@ -367,6 +367,17 @@ def get_figure_caption_paragraphs(document: DocumentObject) -> list[Paragraph]:
                         captions.append(next_p)
     return captions
 
+def get_code_caption_paragraphs(document: DocumentObject) -> list[Paragraph]:
+    captions = []
+    def is_numbered(p: Paragraph) -> bool:
+        return bool(p._p.xpath('.//w:pPr/w:numPr'))
+    paragraphs = document.paragraphs
+    pattern = re.compile(r"^\s*\d+\s*[\.．]\s+")
+    for i, p in enumerate(paragraphs):
+        if is_numbered(p) or pattern.match(p.text.strip()):
+            captions.append(p)
+    return captions            
+
 
 def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: list[Paragraph] | None = None) -> list[Paragraph]:
     """从 sections['正文'] 中提取可用于正文格式检查的段落。

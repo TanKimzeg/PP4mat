@@ -234,7 +234,6 @@ def section_checker(section_location: dict, errors: dict[str, list[str]]) -> Non
         if section not in section_location or len(section_location[section]) == 0:
             logger.error(f"\"{section}\"缺失或位置不正确")
             errors["章节检测"].append(f"\"{section}\"缺失或位置不正确!请使用模板,注意空格、冒号")
-            # 已支持 Word 自动目录（TOC 样式/字段结果），此处不再提示“不支持”
         else:
             logger.info(f"\"{section}\"部分存在 {len(section_location[section])} 个段落")
 
@@ -339,7 +338,33 @@ def check_format(config: Config) -> tuple[dict,dict]:
     # 因此需要使用pywin32来提取文本框内容;检测图片和图题的关联也需要pywin32来实现.
     word = win32com.client.Dispatch("Word.Application")
     win32doc = word.Documents.Open(os.path.abspath(docx_path))
+
+    # 封面信息（文本框）
     cover_info = utils.cover_info_from_textbox(win32doc)
+
+    # 目录兜底：部分 docx 的自动目录可能不在 python-docx 的 paragraphs 视图里。
+    # 用 COM 直接读取 TablesOfContents 的 Range.Text。
+    toc_paragraphs: list[Paragraph] = sections.get("目 录") or []
+    try:
+        if not toc_paragraphs and win32doc.TablesOfContents.Count >= 1:
+            toc_text = win32doc.TablesOfContents(1).Range.Text or ""
+            toc_lines = [ln.strip() for ln in str(toc_text).splitlines() if ln.strip()]
+
+            class _FakeParagraph:
+                def __init__(self, text: str):
+                    self.text = text
+
+            # 仅 toc_checker 用到 p.text，所以用轻量对象即可
+            toc_paragraphs = [
+                _FakeParagraph(t)  # type: ignore[arg-type]
+                for t in toc_lines
+            ]
+            logger.info(f"已使用 Word COM 提取目录，共 {len(toc_paragraphs)} 行")
+    except Exception as e:
+        logger.warning(f"Word COM 提取目录失败，仍使用 python-docx 目录段落：{e}")
+    finally:
+        sections["目 录"] = toc_paragraphs
+
     win32doc.Close()
     word.Quit()
     # cover_info.update(utils.cover_info(sections["毕业论文（设计）"]))
@@ -348,10 +373,11 @@ def check_format(config: Config) -> tuple[dict,dict]:
     toc_checker(sections["目 录"], format_config, errors)
 
     # 正文进一步筛选（排除 TOC/标题等）后再做正文格式检查
-
     body_normal = utils.get_body_normal_paragraphs(
         sections,
-        exclusion=utils.get_table_caption_paragraphs(document) + utils.get_figure_caption_paragraphs(document)
+        exclusion=utils.get_table_caption_paragraphs(document)
+        + utils.get_figure_caption_paragraphs(document)
+        + utils.get_code_caption_paragraphs(document),
     )
     text_checker(body_normal, format_config, errors)
 
