@@ -6,10 +6,10 @@
     "alignment": "CENTER"
 
 "text":
-    "font":
-        "name": "Arial"
-        "size": 12
+    "font_name": "宋体"
+    "font_size": 12  # 小四
     "alignment": "LEFT"
+    "line_spacing": 1.5
 
 "page":
     "margins":
@@ -24,11 +24,13 @@
     "font_name": "宋体"
     "font_size": 10.5  # 五号
     "alignment": "CENTER"
+    "line_spacing": 1.25
 
 "figure":
     "font_name": "宋体"
     "font_size": 10.5  # 五号
     "alignment": "CENTER"
+    "line_spacing": 1.5
 
 "citation_min_count": 5
 
