@@ -5,10 +5,35 @@
         "bold": true
     "alignment": "CENTER"
 
-"text":
-    "font_name": "宋体"
+"heading1":
+    "font_chinese": "黑体"
+    "font_western": "Times New Roman"
+    "font_size": 16  # 三号
+    # "bold": true
+    "alignment": "CENTER"
+    "line_spacing": 1.5
+
+"heading2":
+    "font_chinese": "黑体"
+    "font_western": "Arial"
+    "font_size": 14  # 四号
+    # "bold": true
+    "alignment": "JUSTIFY"
+    "line_spacing": 1.5
+
+"heading3":
+    "font_chinese": "宋体"
+    "font_western": "宋体"
     "font_size": 12  # 小四
-    "alignment": "LEFT"
+    # "bold": true
+    "alignment": "JUSTIFY"
+    "line_spacing": 1.5
+
+"text":
+    "font_chinese": "宋体"
+    "font_western": "宋体"
+    "font_size": 12  # 小四
+    "alignment": "JUSTIFY"
     "line_spacing": 1.5
 
 "page":
@@ -21,13 +46,15 @@
     "orientation": "PORTRAIT"
 
 "table":
-    "font_name": "宋体"
+    "font_chinese": "宋体"
+    "font_western": "Times New Roman"
     "font_size": 10.5  # 五号
     "alignment": "CENTER"
     "line_spacing": 1.25
 
 "figure":
-    "font_name": "宋体"
+    "font_chinese": "宋体"
+    "font_western": "宋体"
     "font_size": 10.5  # 五号
     "alignment": "CENTER"
     "line_spacing": 1.5
@@ -39,7 +66,8 @@
 "reference":
     "min_count": 15
     "en_min_count": 2
-    "font_name": "宋体"
+    "font_chinese": "宋体"
+    "font_western": "宋体"
     "font_size": 10.5  # 五号
 
 "words_min_count": 10000

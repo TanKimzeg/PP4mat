@@ -6,6 +6,8 @@ from docx.document import Document as DocumentObject
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 import re
 
+from pp4mat.config_converter.config_handle import FormatConfig
+
 logger = setup_logger(__package__)
 
 def get_indentation(p: Paragraph) -> float:
@@ -20,13 +22,79 @@ def get_indentation(p: Paragraph) -> float:
     # return left_indent.pt if hasattr(left_indent, 'pt') else left_indent / 20.0
     return left_indent if left_indent is not None else 0.0
 
-def get_effective_alignment(p: Paragraph) -> WD_PARAGRAPH_ALIGNMENT | None:
+def _alignment_from_w_val(val: str | None) -> WD_PARAGRAPH_ALIGNMENT | None:
+    if not val:
+        return None
+    v = str(val).strip().lower()
+    mapping = {
+        "left": WD_PARAGRAPH_ALIGNMENT.LEFT,
+        "center": WD_PARAGRAPH_ALIGNMENT.CENTER,
+        "right": WD_PARAGRAPH_ALIGNMENT.RIGHT,
+        "both": WD_PARAGRAPH_ALIGNMENT.JUSTIFY,
+        "justify": WD_PARAGRAPH_ALIGNMENT.JUSTIFY,
+        "distribute": WD_PARAGRAPH_ALIGNMENT.DISTRIBUTE,
+    }
+    return mapping.get(v)
+
+def _get_doc_default_alignment(document: DocumentObject) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """从 docDefaults/pPrDefault 提取默认段落对齐方式。"""
+    try:
+        from docx.oxml.ns import qn
+
+        styles_elem = document.styles.element
+        docDefaults = styles_elem.find(qn("w:docDefaults"))
+        if docDefaults is None:
+            return None
+        pPrDefault = docDefaults.find(qn("w:pPrDefault"))
+        if pPrDefault is None:
+            return None
+        pPr = pPrDefault.find(qn("w:pPr"))
+        if pPr is None:
+            return None
+        jc = pPr.find(qn("w:jc"))
+        if jc is None:
+            return None
+        return _alignment_from_w_val(jc.get(qn("w:val")))
+    except Exception:
+        return None
+
+def _get_style_alignment(style) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """沿样式继承链查找 paragraph_format.alignment。"""
+    visited = set()
+    cur = style
+    while cur is not None and id(cur) not in visited:
+        visited.add(id(cur))
+        try:
+            pf = getattr(cur, "paragraph_format", None)
+            if pf is not None and pf.alignment is not None:
+                return pf.alignment
+        except Exception:
+            pass
+        cur = getattr(cur, "base_style", None)
+    return None
+
+def get_effective_alignment(p: Paragraph, document: DocumentObject | None = None) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """获取段落最终对齐方式。
+
+    优先级：
+    1) 段落直设 p.alignment
+    2) p.paragraph_format.alignment
+    3) 段落样式继承链 alignment
+    4) 文档默认 docDefaults/pPrDefault/jc
+    """
     if p.alignment is not None:
         return p.alignment
     if p.paragraph_format.alignment is not None:
         return p.paragraph_format.alignment
-    if p.style and p.style.paragraph_format.alignment is not None:
-        return p.style.paragraph_format.alignment
+
+    if p.style is not None:
+        al = _get_style_alignment(p.style)
+        if al is not None:
+            return al
+
+    if document is not None:
+        return _get_doc_default_alignment(document)
+
     return None
 
 def get_effective_font_pt_size(p: Paragraph) -> float | None:
@@ -54,7 +122,71 @@ def get_effective_font_name(p: Paragraph) -> str | None:
     if p.style and p.style.font.name:
         return p.style.font.name
     return None
-    
+
+
+def get_effective_fonts(p: Paragraph) -> tuple[str | None, str | None]:
+    """返回(中文字体eastAsia, 西文字体ascii/hAnsi/name)。
+
+    优先从 run 的 XML rFonts 提取（最可靠），其次回退到 python-docx 的 run.font.name/style.font.name。
+    """
+    from docx.oxml.ns import qn
+
+    def _from_run(run: Run) -> tuple[str | None, str | None]:
+        east: str | None = None
+        west: str | None = None
+        try:
+            rPr = run._element.find(qn('w:rPr'))
+            if rPr is not None:
+                rFonts = rPr.find(qn('w:rFonts'))
+                if rFonts is not None:
+                    east = rFonts.get(qn('w:eastAsia'))
+                    west = rFonts.get(qn('w:ascii')) or rFonts.get(qn('w:hAnsi'))
+        except Exception:
+            pass
+
+        # 回退：python-docx 的 font.name 通常更偏“西文”
+        if west is None:
+            try:
+                west = run.font.name or None
+            except Exception:
+                west = None
+
+        return east, west
+
+    for run in p.runs:
+        if len((run.text or '').strip()) < 1:
+            continue
+        east, west = _from_run(run)
+        if east or west:
+            return east, west
+
+    # 再回退：段落样式字体
+    east = None
+    west = None
+    try:
+        if p.style and p.style.element is not None:
+            rPr = p.style.element.find(qn('w:rPr'))
+            if rPr is not None:
+                rFonts = rPr.find(qn('w:rFonts'))
+                if rFonts is not None:
+                    east = rFonts.get(qn('w:eastAsia'))
+                    west = rFonts.get(qn('w:ascii')) or rFonts.get(qn('w:hAnsi'))
+    except Exception:
+        pass
+
+    if west is None and p.style and p.style.font.name:
+        west = p.style.font.name
+
+    return east, west
+
+
+def get_effective_font_east_asia(p: Paragraph) -> str | None:
+    return get_effective_fonts(p)[0]
+
+
+def get_effective_font_western(p: Paragraph) -> str | None:
+    return get_effective_fonts(p)[1]
+
 def get_bold(p: Paragraph) -> bool:
     raise NotImplementedError
 
@@ -426,3 +558,79 @@ def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: 
         out.append(p)
 
     return out
+
+def match_heading_level(p: Paragraph) -> int | None:
+    """基于样式名 + 文本编号形态推断标题级别。"""
+    if len(p.text.strip()) < 2: # 避免过短文本误判为标题
+        return None
+    style_level = 0
+    name = (getattr(getattr(p, "style", None), "name", "") or "").strip()
+    low = name.lower()
+    if ("heading 1" in low) or ("标题 1" in name) or ("一级标题" in name):
+        style_level = 1
+    if ("heading 2" in low) or ("标题 2" in name) or ("二级标题" in name):
+        style_level = 2
+    if ("heading 3" in low) or ("标题 3" in name) or ("三级标题" in name):
+        style_level = 3
+    if ("normal") in low: # normal 样式不应被误判为标题，直接返回 None
+        return None
+
+    # 文本兜底：1 / 1. / 1.1 / 1.1.1
+    re_level = 0
+    t = (p.text or "").strip()
+    if re.match(r"^\d+\s*(?:[\.．]|\s)\s*\S", t):
+        re_level = 1
+    if re.match(r"^\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)\s*\S", t):
+        re_level = 2
+    if re.match(r"^\d+\s*[\.．]\s*\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)\s*\S", t):
+        re_level = 3
+    return style_level or re_level or None
+
+
+def config_for_level(format_config: FormatConfig, level: int) -> dict | None:
+    if level == 1:
+        return format_config.heading1_config
+    if level == 2:
+        return format_config.heading2_config
+    if level == 3:
+        return format_config.heading3_config
+    if level == 4:
+        return format_config.heading4_config
+    if level == 5:
+        return format_config.heading5_config
+    if level == 6:
+        return format_config.heading6_config
+    return None
+
+def attach_paragraph_indices(document: DocumentObject) -> None:
+    """给 document.paragraphs 里的段落对象绑定一个稳定索引。
+
+    目的：避免后续对子集段落调用 document.paragraphs.index(p) 失败（对象非同一实例/被重建）。
+
+    说明：python-docx 的 Paragraph 是普通 Python 对象，允许动态挂载属性。
+    """
+    for i, p in enumerate(document.paragraphs):
+        try:
+            setattr(p, "__pp4mat_index", i)
+        except Exception:
+            # 极端情况下（对象限制/代理）忽略
+            pass
+
+
+def get_paragraph_index(p: Paragraph, document: DocumentObject | None = None) -> int:
+    """获取段落在文档中的索引（优先用 attach_paragraph_indices 写入的属性）。"""
+    try:
+        idx = getattr(p, "__pp4mat_index")
+        if isinstance(idx, int):
+            return idx
+    except Exception:
+        pass
+
+    if document is not None:
+        # 兜底：尝试用 index()
+        try:
+            return document.paragraphs.index(p)
+        except Exception:
+            return -1
+
+    return -1

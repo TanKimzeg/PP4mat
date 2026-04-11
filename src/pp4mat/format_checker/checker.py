@@ -10,6 +10,11 @@ from docx.document import Document as DocumentObject
 from docx.text.paragraph import Paragraph
 import win32com.client
 
+from pp4mat.format_checker.header_checker import header_checker
+from pp4mat.format_checker.text_checker import text_paragraphs_checker
+from pp4mat.format_checker.table_checker import table_checker
+from pp4mat.format_checker.reference_checker import reference_checker
+
 logger = setup_logger(__package__)
 
 def title_checker(document: DocumentObject, format_config: FormatConfig) -> None:
@@ -19,26 +24,6 @@ def title_checker(document: DocumentObject, format_config: FormatConfig) -> None
         logger.warning("标题格式配置未提供，跳过检查。")
         return 
     raise NotImplementedError("标题格式检查功能尚未实现")
-
-def heading_checker(document: DocumentObject, format_config: FormatConfig) -> None:
-    logger.info("检查小节标题格式...")
-    raise NotImplementedError
-
-def text_checker(text: list[Paragraph], format_config: FormatConfig, errors: dict[str, list[str]] | None = None) -> None:
-    logger.info("检查正文格式...")
-    config = format_config.text_config
-    if config is None:
-        logger.warning(f"正文格式配置未提供，跳过检查。")
-        return
-
-    # 当前仅实现：正文（非标题）行距 1.5 倍检查
-    for i, p in enumerate(text):
-        if not utils.check_line_spacing(p, expected=config["line_spacing"], allow_inherited_true=True):
-            msg = f"正文第{i+1}段行距可能不正确：\"{p.text.strip()[:30]}……\""
-            logger.error(msg)
-            if errors is not None:
-                errors["正文检测"].append(msg)
-
 
 def formula_checker(document: DocumentObject, format_config: FormatConfig) -> None:
     logger.info("检查公式格式...")
@@ -102,110 +87,32 @@ def _(document: DocumentObject, format_config: FormatConfig, errors: dict[str, l
                         errors["图片检测"].append(f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：\"{next_p.text.strip()}\"。请注意空格、编号。")
                     if config is not None:
                         expected_alignment = config["alignment"]
-                        actual_alignment = utils.get_effective_alignment(next_p)
+                        actual_alignment = utils.get_effective_alignment(next_p, document=document)
                         if expected_alignment and actual_alignment != expected_alignment:
                             logger.error(f"图片{picture_cnt}的标题对齐方式错误，应该为{expected_alignment}，但实际为{actual_alignment}")
                             errors["图片检测"].append(f"图片{picture_cnt}的标题对齐方式错误，应该为{expected_alignment}，但实际为{actual_alignment}")
-                        expected_font_size = config["font_size"]
-                        expected_font_name = config["font_name"]
+
+                        expected_font_size = config.get("font_size")
+                        expected_cn = config.get("font_chinese") or config.get("font_name")
+                        expected_en = config.get("font_western")
+
                         actual_font_size = utils.get_effective_font_pt_size(next_p)
-                        actual_font_name = utils.get_effective_font_name(next_p)
+                        actual_cn, actual_en = utils.get_effective_fonts(next_p)
+
                         if expected_font_size and actual_font_size and actual_font_size != expected_font_size:
                             logger.error(f"图片{picture_cnt}的标题字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
                             errors["图片检测"].append(f"图片{picture_cnt}的标题字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
-                        if expected_font_name and actual_font_name and actual_font_name != expected_font_name:
-                            logger.error(f"图片{picture_cnt}的标题字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
-                            errors["图片检测"].append(f"图片{picture_cnt}的标题字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
+
+                        if expected_cn and actual_cn and actual_cn != expected_cn:
+                            logger.error(f"图片{picture_cnt}的标题中文字体错误，应该为{expected_cn}，但实际为{actual_cn}")
+                            errors["图片检测"].append(f"图片{picture_cnt}的标题中文字体错误，应该为{expected_cn}，但实际为{actual_cn}")
+                        if expected_en and actual_en and actual_en != expected_en:
+                            logger.error(f"图片{picture_cnt}的标题西文字体错误，应该为{expected_en}，但实际为{actual_en}")
+                            errors["图片检测"].append(f"图片{picture_cnt}的标题西文字体错误，应该为{expected_en}，但实际为{actual_en}")
                 else:
                     logger.warning(f"该对象不以\"图\"开头，可能不是图片：{next_p.text.strip()}")
 
 
-def table_checker(document: DocumentObject, 
-                  format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
-    logger.info("检查表格格式...")
-    config = format_config.table_config
-    tables = document.tables
-    paragraphs = document.paragraphs
-    
-    for i, table in enumerate(tables):
-        table_index = None
-        for j, p in enumerate(paragraphs):
-            if p._element.getnext() == table._element:
-                table_index = j
-                break
-
-        if table_index is not None and table_index > 0:
-            header_p = paragraphs[table_index]
-            if not header_p.text.strip().startswith(f"表{i+1} "):
-                logger.error(f"表格{i+1}的标题格式错误，应该以\"表{i+1} \"开头，但实际为：\"{header_p.text.strip()}\"")
-                errors["表格检测"].append(f"表格{i+1}的标题格式错误，应该以\"表{i+1} \"开头，但实际为：\"{header_p.text.strip()}\"")
-            if config is not None:
-                expected_alignment = config["alignment"]
-                actual_alignment = utils.get_effective_alignment(header_p)
-                if expected_alignment and actual_alignment != expected_alignment:
-                    logger.error(f"表格{i+1}的标题对齐方式错误，应该为{expected_alignment}，但实际为{actual_alignment}")
-                    errors["表格检测"].append(f"表格{i+1}的标题对齐方式错误，应该为{expected_alignment}，但实际为{actual_alignment}")
-                expected_font_size = config["font_size"]
-                expected_font_name = config["font_name"]
-                actual_font_size = utils.get_effective_font_pt_size(header_p)
-                actual_font_name = utils.get_effective_font_name(header_p)
-                if expected_font_size and actual_font_size and actual_font_size != expected_font_size:
-                    logger.error(f"表格{i+1}的标题字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
-                    errors["表格检测"].append(f"表格{i+1}的标题字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
-                if expected_font_name and actual_font_name and actual_font_name != expected_font_name:
-                    logger.error(f"表格{i+1}的标题字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
-                    errors["表格检测"].append(f"表格{i+1}的标题字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
-            else:
-                logger.info(f"表格{i+1}的标题格式正确：{header_p.text.strip()}")
-        else:
-            logger.error(f"表格{i+1}未找到对应的标题段落，请检查文档格式。")
-            errors["表格检测"].append(f"表格{i+1}未找到对应的标题段落")
-    
-
-def reference_checker(reference: list[Paragraph], 
-                      format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
-    import re
-    logger.info("检查参考文献格式...")
-    config = format_config.reference_config
-    if config is None:
-        logger.warning("参考文献格式配置未提供，跳过检查。")
-        return
-    # Placeholder for reference checking logic
-    pattern = re.compile(r'^\[[1-9]\d*\]')
-    cnt = 0
-    en_cnt = 0
-    for p in reference:
-        if re.match(pattern, p.text.strip()):
-            cnt += 1
-            if all(char.isascii() for char in p.text):
-                en_cnt += 1
-    if cnt < config["min_count"]:
-        logger.error(f"参考文献数量少于{config['min_count']}条，当前数量为{cnt}条，请检查！")
-        errors["参考文献检测"].append(f"参考文献数量少于{config['min_count']}条，当前数量为{cnt}条")
-    if config["font_size"] or config["font_name"]:
-        for i, p in enumerate(reference):
-            if i < 1: continue # 跳过第一条，避免误判
-            expected_font_size = config["font_size"]
-            expected_font_name = config["font_name"]
-            actual_font_size = utils.get_effective_font_pt_size(p)
-            actual_font_name = utils.get_effective_font_name(p)
-            if expected_font_size and actual_font_size and actual_font_size != expected_font_size:
-                logger.error(f"参考文献第{i+1}条的字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
-                errors["参考文献检测"].append(f"参考文献第{i+1}条的字体大小错误，应该为{expected_font_size}pt，但实际为{actual_font_size}pt")
-            if expected_font_name and actual_font_name and actual_font_name != expected_font_name:
-                logger.error(f"参考文献第{i+1}条的字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
-                errors["参考文献检测"].append(f"参考文献第{i+1}条的字体错误，应该为{expected_font_name}，但实际为{actual_font_name}")
-            
-    else:
-        logger.info(f"参考文献数量满足要求，当前数量为{cnt}条。")
-    
-    # 检查英文参考文献数量
-    if en_cnt < config["en_min_count"]:
-        logger.error(f"英文参考文献数量少于{config['en_min_count']}条，当前数量为{en_cnt}条，请检查！")
-        errors["参考文献检测"].append(f"英文参考文献数量少于{config['en_min_count']}条，当前数量为{en_cnt}条")
-    else:
-        logger.info(f"英文参考文献数量满足要求，当前数量为{en_cnt}条。")
-    
 def citation_count_checker(location: dict[str, list[Paragraph]], 
                            format_config: FormatConfig, errors: dict[str, list[str]]) -> None:
     logger.info("检查脚注数量")
@@ -333,6 +240,7 @@ def check_format(config: Config) -> tuple[dict,dict]:
     setup_logger(__package__,level=config.debug, log_dir=config.log_dir)
     
     document = Document(docx_path)
+    utils.attach_paragraph_indices(document)
     sections = utils.get_sections(document)
     # pywin32支持更复杂的Word文档操作,本项目中,论文的封面信息存储在文本框中,
     # 因此需要使用pywin32来提取文本框内容;检测图片和图题的关联也需要pywin32来实现.
@@ -372,6 +280,9 @@ def check_format(config: Config) -> tuple[dict,dict]:
     section_checker(sections, errors)
     toc_checker(sections["目 录"], format_config, errors)
 
+    # 标题检查（1~3级标题：字体/对齐/行距）
+    header_checker(document, format_config, errors)
+
     # 正文进一步筛选（排除 TOC/标题等）后再做正文格式检查
     body_normal = utils.get_body_normal_paragraphs(
         sections,
@@ -379,7 +290,8 @@ def check_format(config: Config) -> tuple[dict,dict]:
         + utils.get_figure_caption_paragraphs(document)
         + utils.get_code_caption_paragraphs(document),
     )
-    text_checker(body_normal, format_config, errors)
+    # 更完整的正文检测：字体/对齐/行距
+    text_paragraphs_checker(body_normal, document, format_config, errors)
 
     survey_checker(document, format_config, errors)
     table_checker(document, format_config, errors)
