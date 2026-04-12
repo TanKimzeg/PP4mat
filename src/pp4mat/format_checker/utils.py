@@ -545,9 +545,17 @@ def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: 
             return True
         return False
 
+    def is_special(p: Paragraph) -> bool:
+        return any(
+            (p.text or "").strip().replace(" ", "").replace("\u3000", "").startswith(s)
+            for s in ["参考文献", "致谢", "附录", "独创性声明", "摘要", "Abstract", "关键词", "Keywords"]
+        )
+    
     out: list[Paragraph] = []
     for p in body:
         if not (p.text or "").strip():
+            continue
+        if is_special(p):
             continue
         if _is_toc(p):
             continue

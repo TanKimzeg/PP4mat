@@ -19,9 +19,8 @@ def to_enum(alignment: str) -> WD_ALIGN_PARAGRAPH | None:
         'left': WD_ALIGN_PARAGRAPH.LEFT,
         'center': WD_ALIGN_PARAGRAPH.CENTER,
         'right': WD_ALIGN_PARAGRAPH.RIGHT,
-        # 'justify': WD_ALIGN_PARAGRAPH.JUSTIFY
-        'justify': None
-        # 这里有一个奇怪的问题,word里面选择"两端对齐"时检测出来是None
+        'justify': WD_ALIGN_PARAGRAPH.JUSTIFY,
+        'distribute': WD_ALIGN_PARAGRAPH.DISTRIBUTE
     }
     
     return alignments.get(alignment.lower(), WD_ALIGN_PARAGRAPH.JUSTIFY)
