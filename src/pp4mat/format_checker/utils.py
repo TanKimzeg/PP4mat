@@ -561,30 +561,43 @@ def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: 
 
 def match_heading_level(p: Paragraph) -> int | None:
     """基于样式名 + 文本编号形态推断标题级别。"""
-    if len(p.text.strip()) < 2: # 避免过短文本误判为标题
+    if len(p.text.strip()) < 2:  # 避免过短文本误判为标题
         return None
     style_level = 0
     name = (getattr(getattr(p, "style", None), "name", "") or "").strip()
     low = name.lower()
+
     if ("heading 1" in low) or ("标题 1" in name) or ("一级标题" in name):
         style_level = 1
-    if ("heading 2" in low) or ("标题 2" in name) or ("二级标题" in name):
+    elif ("heading 2" in low) or ("标题 2" in name) or ("二级标题" in name):
         style_level = 2
-    if ("heading 3" in low) or ("标题 3" in name) or ("三级标题" in name):
+    elif ("heading 3" in low) or ("标题 3" in name) or ("三级标题" in name):
         style_level = 3
-    if ("normal") in low: # normal 样式不应被误判为标题，直接返回 None
+
+    # normal 样式不应被误判为标题，直接返回 None
+    if "normal" in low:
         return None
 
     # 文本兜底：1 / 1. / 1.1 / 1.1.1
+    # 注意：必须从“更具体的层级”开始匹配，否则 '2.1xxx' 会被一级标题正则误判为 1 级。
     re_level = 0
     t = (p.text or "").strip()
-    if re.match(r"^\d+\s*(?:[\.．]|\s)\s*\S", t):
-        re_level = 1
-    if re.match(r"^\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)\s*\S", t):
-        re_level = 2
-    if re.match(r"^\d+\s*[\.．]\s*\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)\s*\S", t):
+
+    # 3级：1.1.1 xxx / 1.1.1xxx
+    if re.match(r"^\d+\s*[\.．]\s*\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)?\s*\S", t):
         re_level = 3
-    return style_level or re_level or None
+    # 2级：1.1 xxx / 1.1xxx
+    elif re.match(r"^\d+\s*[\.．]\s*\d+\s*(?:[\.．]|\s)?\s*\S", t):
+        re_level = 2
+    # 1级：1 xxx / 1. xxx
+    elif re.match(r"^\d+\s*(?:[\.．]|\s)\s*\S", t):
+        re_level = 1
+
+    # 如果样式和文本级别不一致，并且文本能判定出层级，则优先以文本为准（避免样式误用导致的误判）
+    if re_level > 0 and re_level != style_level:
+        return re_level
+
+    return style_level if style_level > 0 else None
 
 
 def config_for_level(format_config: FormatConfig, level: int) -> dict | None:
