@@ -36,6 +36,13 @@
     "alignment": "JUSTIFY"
     "line_spacing": 1.5
 
+"acknowledgement":
+    "font_chinese": "仿宋"
+    "font_western": "仿宋"
+    "font_size": 12  # 小四
+    "alignment": "JUSTIFY"
+    "line_spacing": 1.5
+
 "page":
     "margins":
         "top": 1.0

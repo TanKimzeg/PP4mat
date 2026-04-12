@@ -48,6 +48,7 @@ class FormatConfig:
         self.reference_config:dict | None = configs.get('reference', None)
         self.page_config:dict | None = configs.get('page', None)
         self.abstract_config:dict | None = configs.get('abstract', None)
+        self.acknowledgement_config:dict | None = configs.get('acknowledgement', None)
         self.heading1_config:dict | None = configs.get('heading1', None)
         self.heading2_config:dict | None = configs.get('heading2', None)
         self.heading3_config:dict | None = configs.get('heading3', None)

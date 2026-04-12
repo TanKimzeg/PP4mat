@@ -14,6 +14,7 @@ from pp4mat.format_checker.header_checker import header_checker
 from pp4mat.format_checker.text_checker import text_paragraphs_checker
 from pp4mat.format_checker.table_checker import table_checker
 from pp4mat.format_checker.reference_checker import reference_checker
+from pp4mat.format_checker.ack_checker import acknowledgement_checker
 
 logger = setup_logger(__package__)
 
@@ -296,6 +297,10 @@ def check_format(config: Config) -> tuple[dict,dict]:
     survey_checker(document, format_config, errors)
     table_checker(document, format_config, errors)
     figure_checker(document, format_config, errors)
+
+    # 致谢检查（仿宋小四）
+    acknowledgement_checker(sections, document, format_config, errors)
+
     reference_checker(sections["参考文献"], format_config, errors)
 
     citation_count_checker(sections, format_config, errors)

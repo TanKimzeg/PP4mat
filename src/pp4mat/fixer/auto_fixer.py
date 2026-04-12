@@ -235,7 +235,36 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
                 report_lines.append(msg)
                 logger.info(msg)
 
-    # 3) 图题修复（与 figure_checker 思路一致：修复 caption 段落）
+    # 3) 致谢修复（acknowledgement）
+    acfg = getattr(format_config, "acknowledgement_config", None)
+    if acfg:
+        ack_paras = sections.get("致谢", [])
+        for p in ack_paras[1:]:  # 跳过“致谢”标题
+            if not (p.text or "").strip():
+                continue
+            idx = utils.get_paragraph_index(p, document=doc)
+            if idx >= 0 and _is_toc_idx(idx):
+                continue
+
+            changed = False
+            if acfg.get('alignment') is not None:
+                changed |= _set_alignment(p, _alignment_from_cfg(acfg.get('alignment')))
+            if acfg.get('line_spacing') is not None:
+                changed |= _set_line_spacing_times(p, float(acfg['line_spacing']))
+            changed |= _set_indentation(p, acfg)
+            changed |= _apply_run_font_and_size(p, acfg)
+
+            if changed:
+                fixed_count += 1
+                if idx >= 0:
+                    loc = structure.get(idx)
+                    msg = f"修复致谢: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
+                else:
+                    msg = f"修复致谢: {p.text.strip()[:30]}..."
+                report_lines.append(msg)
+                logger.info(msg)
+
+    # 4) 图题修复（与 figure_checker 思路一致：修复 caption 段落）
     fcfg = format_config.figure_config
     if fcfg:
         figure_caps = utils.get_figure_caption_paragraphs(doc)
@@ -260,7 +289,7 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
                 report_lines.append(msg)
                 logger.info(msg)
 
-    # 4) 表题修复
+    # 5) 表题修复
     tbcfg = format_config.table_config
     if tbcfg:
         table_caps = utils.get_table_caption_paragraphs(doc)
@@ -285,7 +314,7 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
                 report_lines.append(msg)
                 logger.info(msg)
 
-    # 5) 参考文献修复（对齐/行距/字体字号）
+    # 6) 参考文献修复（对齐/行距/字体字号）
     rcfg = format_config.reference_config
     if rcfg:
         ref_paras = sections.get('参考文献', [])

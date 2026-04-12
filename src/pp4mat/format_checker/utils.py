@@ -288,7 +288,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         "Abstract:", 
         "Keywords:", 
         "目 录", 
-        # "文献综述",
+        "致谢",
         "参考文献", 
         "附  录"
     ]
@@ -349,7 +349,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
             t = paragraphs[i].text.strip()
             if _is_toc_paragraph(paragraphs[i]):
                 continue
-            if _norm(t).startswith(_norm("参考文献")) or _norm(t).startswith(_norm("附录")) or _norm(t).startswith(_norm("附  录")):
+            if _norm(t).startswith(_norm("致谢")) or _norm(t).startswith(_norm("参考文献")) or _norm(t).startswith(_norm("附录")) or _norm(t).startswith(_norm("附  录")):
                 end_idx = i
                 break
 
