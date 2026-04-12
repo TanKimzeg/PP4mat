@@ -37,26 +37,59 @@ def _alignment_from_w_val(val: str | None) -> WD_PARAGRAPH_ALIGNMENT | None:
     return mapping.get(v)
 
 def _get_doc_default_alignment(document: DocumentObject) -> WD_PARAGRAPH_ALIGNMENT | None:
-    """从 docDefaults/pPrDefault 提取默认段落对齐方式。"""
+    """从文档级默认/基础样式提取默认段落对齐方式。
+
+    说明：很多 docx 并不会在 docDefaults/pPrDefault 里写 w:jc，
+    而是把默认段落设置放在 Normal（或其本地化名称）样式里。
+
+    返回：
+    - 找到则返回 WD_PARAGRAPH_ALIGNMENT
+    - 否则返回 None
+    """
     try:
         from docx.oxml.ns import qn
 
-        styles_elem = document.styles.element
-        docDefaults = styles_elem.find(qn("w:docDefaults"))
-        if docDefaults is None:
-            return None
-        pPrDefault = docDefaults.find(qn("w:pPrDefault"))
-        if pPrDefault is None:
-            return None
-        pPr = pPrDefault.find(qn("w:pPr"))
-        if pPr is None:
-            return None
-        jc = pPr.find(qn("w:jc"))
-        if jc is None:
-            return None
-        return _alignment_from_w_val(jc.get(qn("w:val")))
+        # 1) docDefaults/pPrDefault/jc
+        try:
+            styles_elem = document.styles.element
+            docDefaults = styles_elem.find(qn("w:docDefaults"))
+            if docDefaults is not None:
+                pPrDefault = docDefaults.find(qn("w:pPrDefault"))
+                if pPrDefault is not None:
+                    pPr = pPrDefault.find(qn("w:pPr"))
+                    if pPr is not None:
+                        jc = pPr.find(qn("w:jc"))
+                        if jc is not None:
+                            al = _alignment_from_w_val(jc.get(qn("w:val")))
+                            if al is not None:
+                                return al
+        except Exception:
+            pass
+
+        # 2) 回退：Normal/正文 等基础样式（沿继承链）
+        # 注意：不同模板/语言下样式名可能不同，做多名尝试。
+        style_candidates = [
+            "Normal",
+            "正文",
+            "Body Text",
+            "BodyText",
+            "Normal (Web)",
+        ]
+        for name in style_candidates:
+            try:
+                st = document.styles[name]
+            except Exception:
+                st = None
+            if st is None:
+                continue
+            al = _get_style_alignment(st)
+            if al is not None:
+                return al
+
     except Exception:
         return None
+
+    return None
 
 def _get_style_alignment(style) -> WD_PARAGRAPH_ALIGNMENT | None:
     """沿样式继承链查找 paragraph_format.alignment。"""
