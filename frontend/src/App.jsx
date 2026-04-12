@@ -159,9 +159,14 @@ function App() {
                 {fixedInfo && (
                     <div className="result-panel">
                         <h2>自动修复</h2>
-                        <p style={{marginTop: 0}}>{fixedInfo.message}</p>
+                        <p style={{ marginTop: 0 }}>{fixedInfo.message}</p>
                         {fixedInfo.fixed_filename && (
                             <a className="download-link" href={`${API_BASE}/download/fixed/${fixedInfo.fixed_filename}`}>下载修复后的 Word 文件</a>
+                        )}
+                        {fixedInfo.fix_report && (
+                            <pre style={{ whiteSpace: "pre-wrap", background: "#0f172a", color: "#e2e8f0", padding: "1rem 1.1rem", borderRadius: "10px", overflowX: "auto", fontSize: ".85rem" }}>
+                                {fixedInfo.fix_report}
+                            </pre>
                         )}
                     </div>
                 )}

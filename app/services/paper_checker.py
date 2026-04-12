@@ -70,11 +70,14 @@ def fix_paper(file: UploadFile):
     stats = bump_counter("total_fixes", 1)
 
     fixed_filename = os.path.basename(result.fixed_path)
+    fix_report = "\n".join(getattr(result, "report_lines", []) or [])
+
     return {
         "status": "ok",
         "message": f"自动修复完成：共修复 {result.fixed_count} 处。",
         "fixed_filename": fixed_filename,
         "fixed_count": result.fixed_count,
+        "fix_report": fix_report,
         "stats": stats,
         "filename": filename,
     }
