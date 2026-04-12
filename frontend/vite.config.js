@@ -10,6 +10,18 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/fix': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/stats': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/download': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 });

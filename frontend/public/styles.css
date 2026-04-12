@@ -98,21 +98,74 @@ button.submit-btn:hover { box-shadow:0 6px 18px -4px rgba(37,99,235,.45); }
 button.submit-btn:active { transform:translateY(1px); }
 button.submit-btn:disabled { opacity:.55; cursor:not-allowed; }
 
-.result-panel {
-  margin-top: 2.2rem;
-  background:#ffffff;
-  border:1px solid #e2e8f0;
-  border-radius:12px;
-  padding:1.6rem 1.4rem 2rem;
-  box-shadow:0 3px 12px -3px rgba(0,0,0,.08);
-  position:relative;
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 1.2rem;
+  position: relative;
+  z-index: 1;
 }
 
-.result-panel h2 {
-  margin:0 0 1rem;
-  font-size:1.15rem;
-  font-weight:600;
-  color:#334155;
+.stats-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.stats-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stats-value {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.fix-btn {
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: #fff;
+  padding: .85rem 1.4rem;
+  border: none;
+  border-radius: 8px;
+  font-size: .95rem;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: .5px;
+  box-shadow: 0 3px 10px -2px rgba(16,185,129,.35);
+  transition: box-shadow .25s, transform .2s;
+}
+.fix-btn:hover {
+  box-shadow: 0 6px 18px -4px rgba(16,185,129,.45);
+}
+.fix-btn:active {
+  transform: translateY(1px);
+}
+.fix-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.download-link {
+  display: inline-block;
+  margin-top: .4rem;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+.download-link:hover {
+  text-decoration: underline;
 }
 
 .markdown-body { line-height:1.55; font-size:.95rem; }
@@ -121,8 +174,22 @@ button.submit-btn:disabled { opacity:.55; cursor:not-allowed; }
 
 footer { margin-top:2.8rem; text-align:center; font-size:.75rem; color:#94a3b8; }
 
+.footer-stats {
+  margin-bottom: .35rem;
+  font-size: .8rem;
+  color: #64748b;
+}
+
+.footer-stats .dot {
+  margin: 0 .35rem;
+  color: #94a3b8;
+}
+
 @media (max-width: 640px) {
   .card { padding:1.6rem 1.25rem 2.2rem; }
   .upload-area { padding:1.6rem 1rem; }
   button.submit-btn { width:100%; }
+  .stats-bar { grid-template-columns: 1fr; }
+  .btn-row { width: 100%; }
+  .btn-row button { width: 100%; }
 }
