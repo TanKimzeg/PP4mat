@@ -4,6 +4,7 @@ from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 from docx.document import Document as DocumentObject
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from typing import Any
 import re
 
 from pp4mat.config_converter.config_handle import FormatConfig
@@ -641,7 +642,7 @@ def match_heading_level(p: Paragraph) -> int | None:
     return style_level if style_level > 0 else None
 
 
-def config_for_level(format_config: FormatConfig, level: int) -> dict | None:
+def config_for_level(format_config: FormatConfig, level: int) -> dict[str, Any] | None:
     if level == 1:
         return format_config.heading1_config
     if level == 2:

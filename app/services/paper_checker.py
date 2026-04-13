@@ -93,5 +93,4 @@ def get_partial_config() -> Config:
         log_dir=None
     )
     config = Config(args)
-    convert_config(config.format_config)
     return config

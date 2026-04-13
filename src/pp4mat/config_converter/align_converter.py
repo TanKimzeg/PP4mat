@@ -1,86 +1,74 @@
-from pp4mat.config_converter.config_handle import FormatConfig
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
+
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.document import Document as DocumentObject
 
+if TYPE_CHECKING:
+    from pp4mat.config_converter.config_handle import FormatConfig
+
+"""pp4mat.config_converter.align_converter
+
+将 YAML 配置中的对齐字符串值转换为 python-docx 使用的 ``WD_ALIGN_PARAGRAPH``。
+
+约定：
+- 仅处理 ``FormatConfig`` 中以 ``_config`` 结尾且值为 ``dict`` 的字段。
+- 若 dict 中包含 ``alignment`` 键，则尝试转换。
+- 不可识别/空值时使用 ``default``（默认 JUSTIFY），或在显式传入 default=None 时返回 None。
 """
-Converts alignment values from a configuration file to the corresponding
-`WD_ALIGN_PARAGRAPH` values used in python-docx.
-"""
 
-@staticmethod
-def to_enum(alignment: str) -> WD_ALIGN_PARAGRAPH | None:
-    """
-    Converts a string alignment value to a WD_ALIGN_PARAGRAPH value.
-    
-    :param alignment: The alignment as a string (e.g., 'left', 'center', 'right', 'justify').
-    :return: Corresponding WD_ALIGN_PARAGRAPH value.
-    """
-    alignments = {
-        'left': WD_ALIGN_PARAGRAPH.LEFT,
-        'center': WD_ALIGN_PARAGRAPH.CENTER,
-        'right': WD_ALIGN_PARAGRAPH.RIGHT,
-        'justify': WD_ALIGN_PARAGRAPH.JUSTIFY,
-        'distribute': WD_ALIGN_PARAGRAPH.DISTRIBUTE
-    }
-    
-    return alignments.get(alignment.lower(), WD_ALIGN_PARAGRAPH.JUSTIFY)
 
-@staticmethod
-def to_string(alignment: WD_ALIGN_PARAGRAPH) -> str:
-    """
-    Converts a WD_ALIGN_PARAGRAPH value to a string representation.
-    
-    :param alignment: The alignment as a WD_ALIGN_PARAGRAPH value.
-    :return: Corresponding string representation.
+_ALIGNMENT_MAP: dict[str, WD_ALIGN_PARAGRAPH] = {
+    "left": WD_ALIGN_PARAGRAPH.LEFT,
+    "center": WD_ALIGN_PARAGRAPH.CENTER,
+    "right": WD_ALIGN_PARAGRAPH.RIGHT,
+    "justify": WD_ALIGN_PARAGRAPH.JUSTIFY,
+    "distribute": WD_ALIGN_PARAGRAPH.DISTRIBUTE,
+}
+
+_REVERSE_ALIGNMENT_MAP: dict[WD_ALIGN_PARAGRAPH, str] = {v: k for k, v in _ALIGNMENT_MAP.items()}
+
+
+def to_enum(alignment: Any, *, default: WD_ALIGN_PARAGRAPH | None = WD_ALIGN_PARAGRAPH.JUSTIFY) -> WD_ALIGN_PARAGRAPH | None:
+    """把配置里的 alignment 值转换为 ``WD_ALIGN_PARAGRAPH``。
+
+    支持：
+    - 字符串：'left'/'center'/'right'/'justify'/'distribute'（大小写不敏感，允许前后空格）
+    - 已经是 WD_ALIGN_PARAGRAPH：原样返回
+    - None：返回 default
+
+    说明：历史上你这里对未知值默认返回 JUSTIFY。为了兼容，保持该行为。
     """
     if alignment is None:
-        return 'none'
-    
-    alignments = {
-        WD_ALIGN_PARAGRAPH.LEFT: 'left',
-        WD_ALIGN_PARAGRAPH.CENTER: 'center',
-        WD_ALIGN_PARAGRAPH.RIGHT: 'right',
-        WD_ALIGN_PARAGRAPH.JUSTIFY: 'justify'
-    }
-    
-    return alignments.get(alignment, 'none')
+        return default
 
-def align_convert(config: FormatConfig) -> None:
-    # Convert alignment values
-    if config.title_config and 'alignment' in config.title_config:
-        config.title_config['alignment'] = to_enum(config.title_config['alignment'])
-    
-    if config.text_config and 'alignment' in config.text_config:
-        config.text_config['alignment'] = to_enum(config.text_config['alignment'])
-    
-    if config.formula_config and 'alignment' in config.formula_config:
-        config.formula_config['alignment'] = to_enum(config.formula_config['alignment'])
-    
-    if config.figure_config and 'alignment' in config.figure_config:
-        config.figure_config['alignment'] = to_enum(config.figure_config['alignment'])
-    
-    if config.table_config and 'alignment' in config.table_config:
-        config.table_config['alignment'] = to_enum(config.table_config['alignment'])
-    
-    if config.reference_config and 'alignment' in config.reference_config:
-        config.reference_config['alignment'] = to_enum(config.reference_config['alignment'])
-    
-    if config.page_config and 'alignment' in config.page_config:
-        config.page_config['alignment'] = to_enum(config.page_config['alignment'])
-    
-    if config.abstract_config and 'alignment' in config.abstract_config:
-        config.abstract_config['alignment'] = to_enum(config.abstract_config['alignment'])
-    
-    if config.heading1_config and 'alignment' in config.heading1_config:
-        config.heading1_config['alignment'] = to_enum(config.heading1_config['alignment'])
-    if config.heading2_config and 'alignment' in config.heading2_config:
-        config.heading2_config['alignment'] = to_enum(config.heading2_config['alignment'])
-    if config.heading3_config and 'alignment' in config.heading3_config:
-        config.heading3_config['alignment'] = to_enum(config.heading3_config['alignment'])
-    if config.heading4_config and 'alignment' in config.heading4_config:
-        config.heading4_config['alignment'] = to_enum(config.heading4_config['alignment'])
-    if config.heading5_config and 'alignment' in config.heading5_config:
-        config.heading5_config['alignment'] = to_enum(config.heading5_config['alignment'])
-    if config.heading6_config and 'alignment' in config.heading6_config:
-        config.heading6_config['alignment'] = to_enum(config.heading6_config['alignment'])
+    if isinstance(alignment, WD_ALIGN_PARAGRAPH):
+        return alignment
 
+    if isinstance(alignment, str):
+        key = alignment.strip().lower()
+        return _ALIGNMENT_MAP.get(key, default)
+
+    # 其他类型不处理，回退默认值
+    return default
+
+
+def to_string(alignment: WD_ALIGN_PARAGRAPH | None) -> str:
+    """把 ``WD_ALIGN_PARAGRAPH`` 转回字符串（用于调试/导出）。"""
+    if alignment is None:
+        return "none"
+    return _REVERSE_ALIGNMENT_MAP.get(alignment, "none")
+
+
+def align_convert(config: "FormatConfig") -> "FormatConfig":
+    """就地转换 config 中所有 ``*_config`` 字段里的 alignment。"""
+    for attr_name, attr_value in vars(config).items():
+        if not attr_name.endswith("_config"):
+            continue
+        if not isinstance(attr_value, dict):
+            continue
+
+        if "alignment" in attr_value:
+            attr_value["alignment"] = to_enum(attr_value.get("alignment"))
+
+    return config
