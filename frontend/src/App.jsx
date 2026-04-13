@@ -138,8 +138,8 @@ function App() {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                     >
-                        <p style={{margin:"0 0 .4rem"}}>{file ? `已选择：${file.name}` : "拖拽或点击选择 .docx 文件"}</p>
-                        <small style={{marginTop: "-0.4rem"}}>
+                        <p style={{ margin: "0 0 .4rem" }}>{file ? `已选择：${file.name}` : "拖拽或点击选择 .docx 文件"}</p>
+                        <small style={{ marginTop: "-0.4rem" }}>
                             识别结果仅供参考，请以学校提供的论文模板与最新规范为准。
                         </small>
                         <input id="file-input-hidden" type="file" onChange={handleFileChange} accept=".docx" />
@@ -154,7 +154,7 @@ function App() {
                     </div>
                 </form>
 
-                {error && <div className="result-panel" style={{borderColor:'#fca5a5', background:'#fff1f2'}}><h2>错误</h2><p style={{color:'#b91c1c'}}>{error}</p></div>}
+                {error && <div className="result-panel" style={{ borderColor: '#fca5a5', background: '#fff1f2' }}><h2>错误</h2><p style={{ color: '#b91c1c' }}>{error}</p></div>}
 
                 {fixedInfo && (
                     <div className="result-panel">
@@ -180,11 +180,21 @@ function App() {
                 )}
 
                 <footer>
-                    <div>© {new Date().getFullYear()} PPSUC · Paper4mat</div>
+                    <div>© {new Date().getFullYear()} PPSUC · <a href="https://github.com/TanKimzeg/PP4mat" target="_blank" rel="noreferrer">Paper4mat</a></div>
                     <div className="footer-stats">
                         <span>累计检测次数：{stats?.total_checks ?? 0}</span>
                         <span className="dot">·</span>
                         <span>累计自动修复次数：{stats?.total_fixes ?? 0}</span>
+                    </div>
+
+                    <div className="footer-links">
+                        <a
+                            href="https://github.com/TanKimzeg/PP4mat/issues/new/choose"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            问题反馈
+                        </a>
                     </div>
                 </footer>
             </div>
