@@ -1,0 +1,45 @@
+name: "Bug report / 缺陷反馈"
+description: "报告一个可复现的缺陷"
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "感谢反馈！请尽量提供关键信息（截图/复现步骤/环境），方便定位问题。"
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题描述
+      description: 简要说明发生了什么、你期望什么
+      placeholder: 例如：上传后报告里参考文献数量统计不正确（期望：>=15；实际：0）
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤（可选）
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: false
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境信息（可选）
+      placeholder: "Windows 11; Office 2021; Chrome 123"
+    validations:
+      required: false
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 截图/日志/示例文件（可选）
+      description: 可直接拖拽上传截图/录屏；如包含个人信息请先脱敏
+      placeholder: "在此补充截图、日志片段或说明已附文件"
+    validations:
+      required: false

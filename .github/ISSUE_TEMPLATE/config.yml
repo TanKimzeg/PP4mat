@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "使用与反馈（Issues）"
+    url: "https://github.com/TanKimzeg/PP4mat/issues"
+    about: "请优先通过 Issue 反馈问题/建议（可追踪、可复现）"
