@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Any, Iterable
 
 from docx import Document
 from docx.document import Document as DocumentObject
+from docx.text.paragraph import Paragraph
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 
 from pp4mat.config_converter.config_handle import Config, FormatConfig
@@ -43,28 +46,25 @@ def _set_run_western_font(run, font_name: str) -> None:
         pass
 
 
-def _set_alignment(paragraph, alignment) -> bool:
-    if paragraph.alignment != alignment:
+def _set_alignment(paragraph: Paragraph, cfg: dict[str, Any]) -> bool:
+    alignment: WD_PARAGRAPH_ALIGNMENT | None = cfg.get("alignment")
+    if alignment and paragraph.alignment != alignment:
         paragraph.alignment = alignment
         return True
     return False
 
 
-def _set_line_spacing_times(paragraph, times: float) -> bool:
+def _set_line_spacing_times(paragraph, cfg: dict[str, Any]) -> bool:
+    times = cfg.get("line_spacing")
     pf = paragraph.paragraph_format
     old = pf.line_spacing
-    if old != times:
+    if times and old != times:
         pf.line_spacing = times
         return True
     return False
 
 
-def _alignment_from_cfg(val):
-    # val 已在 config_converter.align_converter 转为 WD_PARAGRAPH_ALIGNMENT
-    return val
-
-
-def _apply_run_font_and_size(p, cfg: dict) -> bool:
+def _apply_run_font_and_size(p, cfg: dict[str, Any]) -> bool:
     """对段落中有内容的 runs 应用字体/字号。返回是否有修改。"""
     from docx.shared import Pt
 
@@ -99,7 +99,7 @@ def _apply_run_font_and_size(p, cfg: dict) -> bool:
     return changed
 
 
-def _set_indentation(paragraph, cfg: dict) -> bool:
+def _set_indentation(paragraph, cfg: dict[str, Any]) -> bool:
     """根据配置设置段落缩进。
 
     支持字段（存在则应用）：
@@ -137,6 +137,59 @@ def _set_indentation(paragraph, cfg: dict) -> bool:
         _set_len("first_line_indent", float(cfg["first_line_indent_chars"]) * char_to_cm)
 
     return changed
+
+
+def _apply_paragraph_by_cfg(p: Paragraph, cfg: dict) -> bool:
+    """对单个段落应用 cfg（alignment/line_spacing/indent/font&size），返回是否修改。"""
+
+    changed = False
+
+    changed |= _set_alignment(p, cfg)
+
+    changed |= _set_line_spacing_times(p, cfg)
+
+    changed |= _set_indentation(p, cfg)
+    changed |= _apply_run_font_and_size(p, cfg)
+
+    return changed
+
+
+def _fix_paragraphs(
+    doc: DocumentObject,
+    structure: DocumentStructure,
+    paragraphs: Iterable[Paragraph],
+    cfg: dict,
+    *,
+    label: str,
+    report_lines: list[str],
+    fixed_count: int,
+    skip_fn,
+    is_toc_idx_fn,
+) -> int:
+    """批量修复段落，返回累计 fixed_count（只在发生修改时 +1）。"""
+
+    for p in paragraphs:
+        if skip_fn(p.text):
+            continue
+
+        idx = utils.get_paragraph_index(p, document=doc)
+        if idx >= 0 and is_toc_idx_fn(idx):
+            continue
+
+        if not (p.text or "").strip():
+            continue
+
+        if _apply_paragraph_by_cfg(p, cfg):
+            fixed_count += 1
+            if idx >= 0:
+                loc = structure.get(idx)
+                msg = f"{label}: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
+            else:
+                msg = f"{label}: {p.text.strip()[:30]}..."
+            report_lines.append(msg)
+            logger.info(msg)
+
+    return fixed_count
 
 
 def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult | None:
@@ -181,10 +234,8 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
             continue
 
         changed = False
-        if cfg.get('alignment') is not None:
-            changed |= _set_alignment(p, _alignment_from_cfg(cfg.get('alignment')))
-        if cfg.get('line_spacing') is not None:
-            changed |= _set_line_spacing_times(p, float(cfg['line_spacing']))
+        changed |= _set_alignment(p, cfg)
+        changed |= _set_line_spacing_times(p, cfg)
         changed |= _apply_run_font_and_size(p, cfg)
 
         if changed:
@@ -194,7 +245,7 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
             report_lines.append(msg)
             logger.info(msg)
 
-    # 2) 正文修复（与 text_checker 对齐：对齐/行距/（可选）字号/字体）
+    # 2) 正文/致谢/图题/表题/参考文献：使用统一批处理
     sections = utils.get_sections(doc)
     body_normal = utils.get_body_normal_paragraphs(
         sections,
@@ -205,144 +256,75 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
 
     tcfg = format_config.text_config
     if tcfg:
-        for p in body_normal:
-            if _skip_special(p.text):
-                continue
+        fixed_count = _fix_paragraphs(
+            doc,
+            structure,
+            body_normal,
+            tcfg,
+            label="修复正文",
+            report_lines=report_lines,
+            fixed_count=fixed_count,
+            skip_fn=_skip_special,
+            is_toc_idx_fn=_is_toc_idx,
+        )
 
-            idx = utils.get_paragraph_index(p, document=doc)
-            if idx >= 0 and _is_toc_idx(idx):
-                continue
-
-            changed = False
-            if tcfg.get('alignment') is not None:
-                changed |= _set_alignment(p, _alignment_from_cfg(tcfg.get('alignment')))
-            if tcfg.get('line_spacing') is not None:
-                changed |= _set_line_spacing_times(p, float(tcfg['line_spacing']))
-
-            # 新增：缩进修复
-            changed |= _set_indentation(p, tcfg)
-
-            # 正文也需要修复字体/字号（之前被注释导致 text_checker 报错但不修复）
-            changed |= _apply_run_font_and_size(p, tcfg)
-
-            if changed:
-                fixed_count += 1
-                if idx >= 0:
-                    loc = structure.get(idx)
-                    msg = f"修复正文: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
-                else:
-                    msg = f"修复正文: {p.text.strip()[:30]}..."
-                report_lines.append(msg)
-                logger.info(msg)
-
-    # 3) 致谢修复（acknowledgement）
-    acfg = getattr(format_config, "acknowledgement_config", None)
+    acfg = format_config.acknowledgement_config
     if acfg:
         ack_paras = sections.get("致谢", [])
-        for p in ack_paras[1:]:  # 跳过“致谢”标题
-            if not (p.text or "").strip():
-                continue
-            idx = utils.get_paragraph_index(p, document=doc)
-            if idx >= 0 and _is_toc_idx(idx):
-                continue
+        fixed_count = _fix_paragraphs(
+            doc,
+            structure,
+            ack_paras[1:],  # 跳过“致谢”标题
+            acfg,
+            label="修复致谢",
+            report_lines=report_lines,
+            fixed_count=fixed_count,
+            skip_fn=_skip_special,
+            is_toc_idx_fn=_is_toc_idx,
+        )
 
-            changed = False
-            if acfg.get('alignment') is not None:
-                changed |= _set_alignment(p, _alignment_from_cfg(acfg.get('alignment')))
-            if acfg.get('line_spacing') is not None:
-                changed |= _set_line_spacing_times(p, float(acfg['line_spacing']))
-            changed |= _set_indentation(p, acfg)
-            changed |= _apply_run_font_and_size(p, acfg)
-
-            if changed:
-                fixed_count += 1
-                if idx >= 0:
-                    loc = structure.get(idx)
-                    msg = f"修复致谢: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
-                else:
-                    msg = f"修复致谢: {p.text.strip()[:30]}..."
-                report_lines.append(msg)
-                logger.info(msg)
-
-    # 4) 图题修复（与 figure_checker 思路一致：修复 caption 段落）
     fcfg = format_config.figure_config
     if fcfg:
-        figure_caps = utils.get_figure_caption_paragraphs(doc)
-        for p in figure_caps:
-            idx = utils.get_paragraph_index(p, document=doc)
-            if idx >= 0 and _is_toc_idx(idx):
-                continue
-            changed = False
-            if fcfg.get('alignment') is not None:
-                changed |= _set_alignment(p, _alignment_from_cfg(fcfg.get('alignment')))
-            if fcfg.get('line_spacing') is not None:
-                changed |= _set_line_spacing_times(p, float(fcfg['line_spacing']))
-            changed |= _set_indentation(p, fcfg)
-            changed |= _apply_run_font_and_size(p, fcfg)
-            if changed:
-                fixed_count += 1
-                if idx >= 0:
-                    loc = structure.get(idx)
-                    msg = f"修复图题: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
-                else:
-                    msg = f"修复图题: {p.text.strip()[:30]}..."
-                report_lines.append(msg)
-                logger.info(msg)
+        fixed_count = _fix_paragraphs(
+            doc,
+            structure,
+            utils.get_figure_caption_paragraphs(doc),
+            fcfg,
+            label="修复图题",
+            report_lines=report_lines,
+            fixed_count=fixed_count,
+            skip_fn=_skip_special,
+            is_toc_idx_fn=_is_toc_idx,
+        )
 
-    # 5) 表题修复
     tbcfg = format_config.table_config
     if tbcfg:
-        table_caps = utils.get_table_caption_paragraphs(doc)
-        for p in table_caps:
-            idx = utils.get_paragraph_index(p, document=doc)
-            if idx >= 0 and _is_toc_idx(idx):
-                continue
-            changed = False
-            if tbcfg.get('alignment') is not None:
-                changed |= _set_alignment(p, _alignment_from_cfg(tbcfg.get('alignment')))
-            if tbcfg.get('line_spacing') is not None:
-                changed |= _set_line_spacing_times(p, float(tbcfg['line_spacing']))
-            changed |= _set_indentation(p, tbcfg)
-            changed |= _apply_run_font_and_size(p, tbcfg)
-            if changed:
-                fixed_count += 1
-                if idx >= 0:
-                    loc = structure.get(idx)
-                    msg = f"修复表题: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
-                else:
-                    msg = f"修复表题: {p.text.strip()[:30]}..."
-                report_lines.append(msg)
-                logger.info(msg)
+        fixed_count = _fix_paragraphs(
+            doc,
+            structure,
+            utils.get_table_caption_paragraphs(doc),
+            tbcfg,
+            label="修复表题",
+            report_lines=report_lines,
+            fixed_count=fixed_count,
+            skip_fn=_skip_special,
+            is_toc_idx_fn=_is_toc_idx,
+        )
 
-    # 6) 参考文献修复（对齐/行距/字体字号）
     rcfg = format_config.reference_config
     if rcfg:
         ref_paras = sections.get('参考文献', [])
-        for p in ref_paras[1:]:  # 通常第一个段落是 "参考文献" 标题，跳过
-            if len(p.text.strip()) < 5:  # 过短的参考文献条目不修复（可能是误识别的 TOC 条目）
-                continue
-            idx = utils.get_paragraph_index(p, document=doc)
-            if idx >= 0 and _is_toc_idx(idx):
-                continue
-            changed = False
-            if rcfg.get('alignment') is not None:
-                changed |= _set_alignment(p, _alignment_from_cfg(rcfg.get('alignment')))
-            if rcfg.get('line_spacing') is not None:
-                changed |= _set_line_spacing_times(p, float(rcfg['line_spacing']))
-
-            # 参考文献：强制缩进为 0
-            changed |= _set_indentation(p, rcfg)
-
-            changed |= _apply_run_font_and_size(p, rcfg)
-            if changed:
-                fixed_count += 1
-                if idx >= 0:
-                    loc = structure.get(idx)
-                    msg = f"修复参考文献: P{idx} [{loc.short()}] {p.text.strip()[:30]}..."
-                else:
-                    msg = f"修复参考文献: {p.text.strip()[:30]}..."
-                report_lines.append(msg)
-                logger.info(msg)
+        fixed_count = _fix_paragraphs(
+            doc,
+            structure,
+            ref_paras[1:],  # 通常第一个段落是标题
+            rcfg,
+            label="修复参考文献",
+            report_lines=report_lines,
+            fixed_count=fixed_count,
+            skip_fn=_skip_special,
+            is_toc_idx_fn=_is_toc_idx,
+        )
 
     if fixed_count <= 0:
         return None
