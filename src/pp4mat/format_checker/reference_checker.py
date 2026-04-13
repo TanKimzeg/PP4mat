@@ -31,6 +31,7 @@ def reference_checker(reference: list[Paragraph],
         for i, p in enumerate(reference):
             if i < 1:
                 continue  # 跳过第一条，避免误判
+            if len(p.text.strip()) < 1: continue # 跳过无效参考文献
 
             expected_font_size = config.get("font_size")
             expected_cn = config.get("font_chinese") or config.get("font_name")

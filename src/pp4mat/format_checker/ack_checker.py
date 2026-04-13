@@ -36,8 +36,7 @@ def acknowledgement_checker(sections: dict, document: DocumentObject, format_con
     bucket = errors.setdefault("致谢检测", [])
 
     for p in body:
-        if not (p.text or "").strip():
-            continue
+        if len(p.text.strip()) < 1: continue # 跳过空行
 
         idx = utils.get_paragraph_index(p, document=document)
         loc_prefix = f"P{idx} " if idx >= 0 else ""

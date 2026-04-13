@@ -27,6 +27,7 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
 
         if any(p.text.strip().replace(" ", "").replace("\u3000", "").startswith(s) for s in ["参考文献", "致谢", "附录", "独创性声明", "摘要", "Abstract", "关键词", "Keywords"]):
             continue  # 避免误修复这些章节标题（可能被错误识别为 Heading1-3）
+        if len(p.text.strip()) < 1: continue # 跳过空行
 
         level = match_heading_level(p)
         if level is None:
