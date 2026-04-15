@@ -4,7 +4,7 @@ from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 from docx.document import Document as DocumentObject
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from typing import Any
+from typing import Any, Literal
 import re
 
 from pp4mat.config_converter.config_handle import FormatConfig
@@ -223,26 +223,6 @@ def get_effective_font_western(p: Paragraph) -> str | None:
 
 def get_bold(p: Paragraph) -> bool:
     raise NotImplementedError
-
-def correct_size(ps: list[Paragraph], size: int) -> bool:
-    # convert = {"小六": 13  ,   "六号": 15  , "小五":  18  ,  "五号": 21  ,
-    #             "小四": 24  ,   "四号": 28  , "小三" :30 ,   "三号":32  ,
-    #             "小二": 36 , "二号":44 ,"小一": 48 , "一号": 52}
-    # expected_size = convert[size]
-    expected_size = float(size)
-    # Check the font size of the first run in the paragraph
-    for p in ps:
-        for run in p.runs:
-            if len(run.text.strip()) == 0: continue
-            s = run.font.size.pt if run.font.size else None
-            if s is None:
-                s = run.style.font.size
-                if s is None:
-                    if p.style: s = p.style.font.size
-            assert s is not None, "Font size should not be None"
-            if float(s) != expected_size:
-                return False
-    return True
 
 def total_words(doc: DocumentObject) -> int:
     return sum(len(p.text.strip()) for p in doc.paragraphs)
@@ -557,15 +537,8 @@ def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: 
         return (getattr(style, "name", "") or "").strip()
 
     def _is_heading(par: Paragraph) -> bool:
-        name = _style_name(par)
-        low = name.lower()
-        if "heading" in low:
-            return True
-        if "标题" in name:
-            return True
-        if "一级标题" in name or "二级标题" in name or "三级标题" in name:
-            return True
-        return False
+        # 复用主标题识别逻辑（样式 + 文本编号形态）
+        return match_heading_level(par) is not None
 
     def _is_toc(par: Paragraph) -> bool:
         name = _style_name(par)
@@ -598,11 +571,11 @@ def get_body_normal_paragraphs(sections: dict[str, list[Paragraph]], exclusion: 
 
     return out
 
-def match_heading_level(p: Paragraph) -> int | None:
+def match_heading_level(p: Paragraph) -> Literal[1, 2, 3] | None:
     """基于样式名 + 文本编号形态推断标题级别。"""
     if len(p.text.strip()) < 2:  # 避免过短文本误判为标题
         return None
-    style_level = 0
+    style_level: Literal[1, 2, 3] | None = None
     name = (getattr(getattr(p, "style", None), "name", "") or "").strip()
     low = name.lower()
 
@@ -619,7 +592,7 @@ def match_heading_level(p: Paragraph) -> int | None:
 
     # 文本兜底：1 / 1. / 1.1 / 1.1.1
     # 注意：必须从“更具体的层级”开始匹配，否则 '2.1xxx' 会被一级标题正则误判为 1 级。
-    re_level = 0
+    re_level: Literal[1, 2, 3] | None = None
     t = (p.text or "").strip()
 
     # 3级：1.1.1 xxx / 1.1.1xxx
@@ -633,10 +606,10 @@ def match_heading_level(p: Paragraph) -> int | None:
         re_level = 1
 
     # 如果样式和文本级别不一致，并且文本能判定出层级，则优先以文本为准（避免样式误用导致的误判）
-    if re_level > 0 and re_level != style_level:
+    if re_level and re_level != style_level:
         return re_level
 
-    return style_level if style_level > 0 else None
+    return style_level if style_level else None
 
 
 def config_for_level(format_config: FormatConfig, level: int) -> dict[str, Any] | None:
@@ -686,3 +659,52 @@ def get_paragraph_index(p: Paragraph, document: DocumentObject | None = None) ->
             return -1
 
     return -1
+
+class Formatter:
+    @staticmethod
+    def fmt_align(alignment: WD_PARAGRAPH_ALIGNMENT | None) -> str:
+        match alignment:
+            case WD_PARAGRAPH_ALIGNMENT.LEFT:
+                return "左对齐"
+            case WD_PARAGRAPH_ALIGNMENT.CENTER:
+                return "居中"
+            case WD_PARAGRAPH_ALIGNMENT.RIGHT:
+                return "右对齐"
+            case WD_PARAGRAPH_ALIGNMENT.JUSTIFY:
+                return "两端对齐"
+            case WD_PARAGRAPH_ALIGNMENT.DISTRIBUTE:
+                return "分散对齐"
+            case WD_PARAGRAPH_ALIGNMENT.JUSTIFY_HI:
+                return "两端对齐（高）" 
+            case WD_PARAGRAPH_ALIGNMENT.JUSTIFY_LOW:
+                return "两端对齐（低）"
+            case WD_PARAGRAPH_ALIGNMENT.JUSTIFY_MED:
+                return "两端对齐（中）"
+            case WD_PARAGRAPH_ALIGNMENT.THAI_JUSTIFY:
+                return "两端对齐（泰文）"
+            case None:
+                return "未设置（继承）"
+            
+    @staticmethod
+    def fmt_font_pt_size(size: float) -> str:
+        # 常见字号映射（仅供参考，实际可能因模板而异）
+        size_map = {
+            5: "八号",
+            5.5: "七号",
+            6.5: "小六",
+            7.5: "六号",
+            9: "小五",
+            10.5: "五号",
+            12: "小四",
+            14: "四号",
+            15: "小三",
+            16: "三号",
+            18: "小二",
+            22: "二号",
+            24: "小一",
+            26: "一号",
+            36: "小初",
+            42: "初号",
+        }
+        return size_map.get(size, f"{size} pt")
+
