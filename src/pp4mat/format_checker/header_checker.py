@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from docx.document import Document as DocumentObject
 
-from pp4mat.format_checker.utils import match_heading_level, config_for_level
+from pp4mat.format_checker.utils import (
+    match_heading_level, 
+    config_for_level,
+    get_effective_alignment,
+    get_effective_fonts,
+    check_line_spacing,
+    get_effective_font_pt_size,
+    Formatter
+)
 from pp4mat.config_converter.config_handle import FormatConfig
-from pp4mat.format_checker import utils
 from pp4mat.logger import setup_logger
 from pp4mat.skillhub.location import DocumentStructure
 
@@ -44,16 +51,16 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
 
         # 对齐
         expected_align = cfg.get("alignment")
-        actual_align = utils.get_effective_alignment(p, document=document)
+        actual_align = get_effective_alignment(p, document=document)
         if expected_align is not None and actual_align != expected_align:
             errors["标题检测"].append(
-                f"{loc_str} 标题{level}对齐错误：应为{expected_align}，实际为{actual_align}，内容:'{preview}...'"
+                f"{loc_str} 标题{level}对齐错误：应为{Formatter.fmt_align(expected_align)}，实际为{Formatter.fmt_align(actual_align)}，内容:'{preview}...'"
             )
 
         # 行距（倍数）
         expected_ls = cfg.get("line_spacing")
         if expected_ls is not None:
-            if not utils.check_line_spacing(p, expected=float(expected_ls), allow_inherited_true=True):
+            if not check_line_spacing(p, expected=float(expected_ls), allow_inherited_true=True):
                 errors["标题检测"].append(
                     f"{loc_str} 标题{level}行距可能不正确：期望{expected_ls}倍，内容:'{preview}...'"
                 )
@@ -63,8 +70,8 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
         expected_en = cfg.get("font_western")
         expected_size = cfg.get("font_size")
 
-        actual_cn, actual_en = utils.get_effective_fonts(p)
-        actual_size = utils.get_effective_font_pt_size(p)
+        actual_cn, actual_en = get_effective_fonts(p)
+        actual_size = get_effective_font_pt_size(p)
 
         if expected_cn and actual_cn and actual_cn != expected_cn:
             errors["标题检测"].append(
@@ -76,5 +83,5 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
             )
         if expected_size and actual_size and float(actual_size) != float(expected_size):
             errors["标题检测"].append(
-                f"{loc_str} 标题{level}字号错误：应为{expected_size}pt，实际为{actual_size}pt，内容:'{preview}...'"
+                f"{loc_str} 标题{level}字号错误：应为{Formatter.fmt_font_pt_size(expected_size)}，实际为{Formatter.fmt_font_pt_size(actual_size)}，内容:'{preview}...'"
             )
