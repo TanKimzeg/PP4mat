@@ -251,7 +251,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
     from collections import defaultdict
 
     def _norm(s: str) -> str:
-        return re.sub(r"\s+", "", (s or "").strip())
+        return re.sub(r"\s+", "", (s or "").replace("\u3000", " ").strip())
 
     def _style_name(par: Paragraph) -> str:
         style = getattr(par, "style", None)
@@ -294,9 +294,6 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         "附  录"
     ]
     paragraphs = doc.paragraphs
-    for p in paragraphs:
-        if '\u3000' in p.text:
-            p.text = p.text.replace('\u3000', ' ')
 
     # 基于标题切片（适用于手写目录/固定模板）
     p_idx = 0
