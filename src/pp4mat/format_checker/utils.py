@@ -251,7 +251,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
     from collections import defaultdict
 
     def _norm(s: str) -> str:
-        return re.sub(r"\s+", "", (s or "").strip())
+        return re.sub(r"\s+", "", (s or "").replace("\u3000", " ").strip())
 
     def _style_name(par: Paragraph) -> str:
         style = getattr(par, "style", None)
@@ -284,19 +284,16 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
     undergraduate_location:dict[str, list[Paragraph]] = defaultdict(list)
     undergraduate_sections = [
         "毕业论文（设计）",
-        "摘 要：", 
+        "摘要：", 
         "关键词：", 
         "Abstract:", 
         "Keywords:", 
-        "目 录", 
+        "目录", 
         "致谢",
         "参考文献", 
-        "附  录"
+        "附录"
     ]
     paragraphs = doc.paragraphs
-    for p in paragraphs:
-        if '\u3000' in p.text:
-            p.text = p.text.replace('\u3000', ' ')
 
     # 基于标题切片（适用于手写目录/固定模板）
     p_idx = 0
@@ -304,13 +301,13 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         begin, end = False, False
         while p_idx < len(paragraphs) and not end:
             for j in range(i + 1, len(undergraduate_sections)):
-                if (paragraphs[p_idx].text.strip().startswith(undergraduate_sections[j]) if i + 1 < len(undergraduate_sections) else "") and not (
+                if (_norm(paragraphs[p_idx].text).startswith(undergraduate_sections[j]) if i + 1 < len(undergraduate_sections) else "") and not (
                     _style_name(paragraphs[p_idx]).upper().startswith("TOC")):
                     end = True
                     break
             if end:
                 break
-            if paragraphs[p_idx].text.strip().startswith(section):
+            if _norm(paragraphs[p_idx].text).startswith(section):
                 begin = True
             if begin:
                 undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p_idx])
@@ -338,11 +335,11 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
 
     if body_start_idx is not None:
         # 目录只保留正文开始点之前的段落（避免目录切片把正文也吃进去）
-        if "目 录" in undergraduate_location and undergraduate_location["目 录"]:
-            toc_list = undergraduate_location["目 录"]
+        if "目录" in undergraduate_location and undergraduate_location["目录"]:
+            toc_list = undergraduate_location["目录"]
             # 建立 paragraph 对象 -> index 的映射，避免反复 paragraphs.index() 造成 O(n^2)
             idx_map = {id(par): idx for idx, par in enumerate(paragraphs)}
-            undergraduate_location["目 录"] = [par for par in toc_list if idx_map.get(id(par), -1) < body_start_idx]
+            undergraduate_location["目录"] = [par for par in toc_list if idx_map.get(id(par), -1) < body_start_idx]
 
         # 正文：从 body_start_idx 到参考文献/附录之前（若能定位到）
         end_idx = len(paragraphs)

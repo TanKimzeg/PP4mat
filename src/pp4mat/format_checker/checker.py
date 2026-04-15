@@ -129,14 +129,14 @@ def citation_count_checker(location: dict[str, list[Paragraph]],
 def section_checker(section_location: dict, errors: dict[str, list[str]]) -> None:
     undergraduate_sections = [
         "毕业论文（设计）",
-        "摘 要", 
+        "摘要", 
         "关键词", 
         "Abstract", 
         "Keywords", 
-        "目 录", 
-        # "文献综述",
+        "目录", 
+        "致谢",
         "参考文献", 
-        "附  录"
+        "附录"
     ]
     for section in undergraduate_sections:
         if section not in section_location or len(section_location[section]) == 0:
@@ -253,7 +253,7 @@ def check_format(config: Config) -> tuple[dict,dict]:
 
     # 目录兜底：部分 docx 的自动目录可能不在 python-docx 的 paragraphs 视图里。
     # 用 COM 直接读取 TablesOfContents 的 Range.Text。
-    toc_paragraphs: list[Paragraph] = sections.get("目 录") or []
+    toc_paragraphs: list[Paragraph] = sections.get("目录") or []
     try:
         if not toc_paragraphs and win32doc.TablesOfContents.Count >= 1:
             toc_text = win32doc.TablesOfContents(1).Range.Text or ""
@@ -272,14 +272,14 @@ def check_format(config: Config) -> tuple[dict,dict]:
     except Exception as e:
         logger.warning(f"Word COM 提取目录失败，仍使用 python-docx 目录段落：{e}")
     finally:
-        sections["目 录"] = toc_paragraphs
+        sections["目录"] = toc_paragraphs
 
     win32doc.Close()
     word.Quit()
     # cover_info.update(utils.cover_info(sections["毕业论文（设计）"]))
     check_cover_info(cover_info, errors)
     section_checker(sections, errors)
-    toc_checker(sections["目 录"], format_config, errors)
+    toc_checker(sections["目录"], format_config, errors)
 
     # 标题检查（1~3级标题：字体/对齐/行距）
     header_checker(document, format_config, errors)
