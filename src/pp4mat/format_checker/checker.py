@@ -301,7 +301,7 @@ def check_format(config: Config) -> tuple[dict,dict]:
     # 致谢检查（仿宋小四）
     acknowledgement_checker(sections, document, format_config, errors)
 
-    reference_checker(sections["参考文献"], format_config, errors)
+    reference_checker(sections["参考文献"], document, format_config, errors)
 
     citation_count_checker(sections, format_config, errors)
     check_enough_words(document, format_config, errors)

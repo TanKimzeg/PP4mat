@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from docx.document import Document as DocumentObject
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
 from pp4mat.format_checker.utils import (
     match_heading_level, 
@@ -9,6 +11,7 @@ from pp4mat.format_checker.utils import (
     get_effective_fonts,
     check_line_spacing,
     get_effective_font_pt_size,
+    norm_text,
     Formatter
 )
 from pp4mat.config_converter.config_handle import FormatConfig
@@ -32,8 +35,8 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
         except Exception:
             pass
 
-        if any(p.text.strip().replace(" ", "").replace("\u3000", "").startswith(s) for s in ["参考文献", "致谢", "附录", "独创性声明", "摘要", "Abstract", "关键词", "Keywords"]):
-            continue  # 避免误修复这些章节标题（可能被错误识别为 Heading1-3）
+        # if any(p.text.strip().replace(" ", "").replace("\u3000", "").startswith(s) for s in ["独创性声明", "摘要", "Abstract", "关键词", "Keywords"]):
+        #     continue  # 避免误修复这些章节标题（可能被错误识别为 Heading1-3）
         if len(p.text.strip()) < 1: continue # 跳过空行
 
         level = match_heading_level(p)
@@ -44,6 +47,10 @@ def header_checker(document: DocumentObject, format_config: FormatConfig, errors
         if not cfg:
             # 未配置则跳过
             continue
+        if norm_text(p.text).startswith("参考文献："):
+            cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制参考文献标题左对齐
+        if norm_text(p.text).startswith("附录："):
+            cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制附录标题左对齐
 
         loc = structure.get(i)
         loc_str = f"P{i} [{loc.short()}]"

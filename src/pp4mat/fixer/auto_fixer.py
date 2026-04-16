@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from typing import Any, Iterable
 
@@ -210,7 +211,7 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
     def _skip_special(p_text: str) -> bool:
         return any(
             (p_text or "").strip().replace(" ", "").replace("\u3000", "").startswith(s)
-            for s in ["参考文献", "致谢", "附录", "独创性声明", "摘要", "Abstract", "关键词", "Keywords"]
+            for s in ["独创性声明", "摘要", "Abstract", "关键词", "Keywords"]
         )
 
     def _is_toc_idx(i: int) -> bool:
@@ -232,6 +233,10 @@ def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult |
             continue
         if _skip_special(p.text):
             continue
+        if utils.norm_text(p.text).startswith("参考文献："):
+            cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 参考文献标题左对齐
+        elif utils.norm_text(p.text).startswith("附录："):
+            cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 附录标题左对齐
 
         changed = False
         changed |= _set_alignment(p, cfg)

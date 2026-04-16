@@ -57,6 +57,7 @@ class FormatConfig:
         self.page_config: dict[str, Any] | None = configs.get('page', None)
         self.abstract_config: dict[str, Any] | None = configs.get('abstract', None)
         self.acknowledgement_config: dict[str, Any] | None = configs.get('acknowledgement', None)
+        # self.appendix_config: dict[str, Any] | None = configs.get('appendix', None)
         self.heading1_config: dict[str, Any] | None = configs.get('heading1', None)
         self.heading2_config: dict[str, Any] | None = configs.get('heading2', None)
         self.heading3_config: dict[str, Any] | None = configs.get('heading3', None)

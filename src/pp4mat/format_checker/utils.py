@@ -307,9 +307,6 @@ def total_words(doc: DocumentObject) -> int:
 def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
     from collections import defaultdict
 
-    def _norm(s: str) -> str:
-        return re.sub(r"\s+", "", (s or "").replace("\u3000", " ").strip())
-
     def _style_name(par: Paragraph) -> str:
         style = getattr(par, "style", None)
         return (getattr(style, "name", "") or "").strip()
@@ -347,8 +344,8 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         "Keywords:", 
         "目录", 
         "致谢",
-        "参考文献", 
-        "附录"
+        "参考文献：", 
+        "附录："
     ]
     paragraphs = doc.paragraphs
 
@@ -358,13 +355,13 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         begin, end = False, False
         while p_idx < len(paragraphs) and not end:
             for j in range(i + 1, len(undergraduate_sections)):
-                if (_norm(paragraphs[p_idx].text).startswith(undergraduate_sections[j]) if i + 1 < len(undergraduate_sections) else "") and not (
+                if (norm_text(paragraphs[p_idx].text).startswith(undergraduate_sections[j]) if i + 1 < len(undergraduate_sections) else "") and not (
                     _style_name(paragraphs[p_idx]).upper().startswith("TOC")):
                     end = True
                     break
             if end:
                 break
-            if _norm(paragraphs[p_idx].text).startswith(section):
+            if norm_text(paragraphs[p_idx].text).startswith(section):
                 begin = True
             if begin:
                 undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p_idx])
@@ -404,7 +401,7 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
             t = paragraphs[i].text.strip()
             if _is_toc_paragraph(paragraphs[i]):
                 continue
-            if _norm(t).startswith(_norm("致谢")) or _norm(t).startswith(_norm("参考文献")) or _norm(t).startswith(_norm("附录")) or _norm(t).startswith(_norm("附  录")):
+            if any([norm_text(t).startswith(norm_text(s)) for s in ["致谢", "参考文献", "附录"]]):
                 end_idx = i
                 break
 
@@ -736,6 +733,10 @@ def get_paragraph_index(p: Paragraph, document: DocumentObject | None = None) ->
             return -1
 
     return -1
+
+
+def norm_text(s: str) -> str:
+    return re.sub(r"\s+", "", (s or "").replace("\u3000", " ").strip())
 
 class Formatter:
     @staticmethod
