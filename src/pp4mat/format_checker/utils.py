@@ -24,18 +24,71 @@ def get_indentation(p: Paragraph) -> float:
     return left_indent if left_indent is not None else 0.0
 
 def _alignment_from_w_val(val: str | None) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """将 Word XML 中 w:jc/@w:val 映射为 python-docx 的 WD_PARAGRAPH_ALIGNMENT。
+
+    兼容：left/center/right/both/justify/distribute 以及常见变体。
+    """
     if not val:
         return None
     v = str(val).strip().lower()
     mapping = {
         "left": WD_PARAGRAPH_ALIGNMENT.LEFT,
+        "start": WD_PARAGRAPH_ALIGNMENT.LEFT,
         "center": WD_PARAGRAPH_ALIGNMENT.CENTER,
         "right": WD_PARAGRAPH_ALIGNMENT.RIGHT,
+        "end": WD_PARAGRAPH_ALIGNMENT.RIGHT,
         "both": WD_PARAGRAPH_ALIGNMENT.JUSTIFY,
         "justify": WD_PARAGRAPH_ALIGNMENT.JUSTIFY,
         "distribute": WD_PARAGRAPH_ALIGNMENT.DISTRIBUTE,
     }
     return mapping.get(v)
+
+
+def _get_alignment_from_paragraph_xml(p: Paragraph) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """从段落 XML 的 w:pPr/w:jc 直接提取对齐。
+
+    说明：不少文档的对齐只写在 XML 里，python-docx 的 p.alignment 可能为 None。
+    """
+    try:
+        from docx.oxml.ns import qn
+
+        pPr = p._element.find(qn("w:pPr"))
+        if pPr is None:
+            return None
+        jc = pPr.find(qn("w:jc"))
+        if jc is None:
+            return None
+        return _alignment_from_w_val(jc.get(qn("w:val")))
+    except Exception:
+        return None
+
+
+def _get_alignment_from_style_xml(style) -> WD_PARAGRAPH_ALIGNMENT | None:
+    """沿样式继承链，从 style.element 的 w:pPr/w:jc 提取对齐。"""
+    try:
+        from docx.oxml.ns import qn
+
+        visited = set()
+        cur = style
+        while cur is not None and id(cur) not in visited:
+            visited.add(id(cur))
+            try:
+                el = getattr(cur, "element", None)
+                if el is not None:
+                    pPr = el.find(qn("w:pPr"))
+                    if pPr is not None:
+                        jc = pPr.find(qn("w:jc"))
+                        if jc is not None:
+                            al = _alignment_from_w_val(jc.get(qn("w:val")))
+                            if al is not None:
+                                return al
+            except Exception:
+                pass
+            cur = getattr(cur, "base_style", None)
+    except Exception:
+        return None
+
+    return None
 
 def _get_doc_default_alignment(document: DocumentObject) -> WD_PARAGRAPH_ALIGNMENT | None:
     """从文档级默认/基础样式提取默认段落对齐方式。
@@ -108,24 +161,48 @@ def _get_style_alignment(style) -> WD_PARAGRAPH_ALIGNMENT | None:
     return None
 
 def get_effective_alignment(p: Paragraph, document: DocumentObject | None = None) -> WD_PARAGRAPH_ALIGNMENT | None:
-    """获取段落最终对齐方式。
+    """获取段落最终对齐方式（更贴近 Word 渲染）。
 
-    优先级：
-    1) 段落直设 p.alignment
-    2) p.paragraph_format.alignment
-    3) 段落样式继承链 alignment
-    4) 文档默认 docDefaults/pPrDefault/jc
+    python-docx 的 p.alignment / paragraph_format.alignment 有时为 None，
+    但实际对齐可能写在段落/样式 XML 的 w:pPr/w:jc 中。
+
+    优先级（从高到低）：
+    1) 段落 XML 直设：w:pPr/w:jc
+    2) 段落直设：p.alignment
+    3) 段落格式：p.paragraph_format.alignment
+    4) 样式 XML（沿继承链）：style.element/w:pPr/w:jc
+    5) 样式对象（沿继承链）：style.paragraph_format.alignment
+    6) 文档默认：docDefaults/pPrDefault/jc + Normal/正文等候选样式兜底
     """
+    # 1) 段落 XML 直设
+    al = _get_alignment_from_paragraph_xml(p)
+    if al is not None:
+        return al
+
+    # 2) 段落对象直设
     if p.alignment is not None:
         return p.alignment
-    if p.paragraph_format.alignment is not None:
-        return p.paragraph_format.alignment
 
+    # 3) 段落格式
+    try:
+        if p.paragraph_format.alignment is not None:
+            return p.paragraph_format.alignment
+    except Exception:
+        pass
+
+    # 4) 样式 XML（继承链）
+    if p.style is not None:
+        al = _get_alignment_from_style_xml(p.style)
+        if al is not None:
+            return al
+
+    # 5) 样式对象（继承链）
     if p.style is not None:
         al = _get_style_alignment(p.style)
         if al is not None:
             return al
 
+    # 6) 文档默认
     if document is not None:
         return _get_doc_default_alignment(document)
 
@@ -133,7 +210,7 @@ def get_effective_alignment(p: Paragraph, document: DocumentObject | None = None
 
 def get_effective_font_pt_size(p: Paragraph) -> float | None:
     for run in p.runs:
-        if len(run.text.strip()) < 5: continue # 跳过空白或过短的run，避免误判
+        if len(run.text.strip()) < 2: continue # 跳过空白或过短的run，避免误判
         s = run.font.size.pt if run.font.size else None
         if s is not None:
             return s
