@@ -24,10 +24,12 @@ def generate_report(filename: str, paper_info:dict[str,str],
     {% if errors %}
 ## 错误详情
     {% for error_type, error_list in errors.items() %}
+    {% if error_list %}
 ### {{ error_type }}
     {% for error in error_list %}
 - {{ error }}
     {% endfor %}
+    {% endif %}
     {% endfor %}
 
     {% else %}
