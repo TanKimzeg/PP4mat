@@ -10,7 +10,7 @@ def main() -> None:
     parser.add_argument('--config', type=str, default=f'./rules.yaml', help='配置文件路径，包含格式规则')
     parser.add_argument("--debug", action="store_true", help="启用调试模式以获取详细日志（默认：禁用）")
     parser.add_argument("--output", type=str, default="./reports", help="报告输出路径，默认为当前目录下的 report 文件夹")
-    parser.add_argument("--log_dir", type=str, default="./error_logs", help="日志文件夹路径，默认为当前目录下的 error_logs 文件夹")
+    parser.add_argument("--log_dir", type=str, default="./logs", help="日志文件夹路径，默认为当前目录下的 logs 文件夹")
     
     args = parser.parse_args()
 

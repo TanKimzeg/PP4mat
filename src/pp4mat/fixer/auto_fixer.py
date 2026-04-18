@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import re
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Iterable
 
@@ -14,9 +14,9 @@ from docx.oxml.ns import qn
 from pp4mat.config_converter.config_handle import Config, FormatConfig
 from pp4mat.format_checker import utils
 from pp4mat.logger import setup_logger
-from pp4mat.skillhub.location import DocumentStructure
+from pp4mat.location import DocumentStructure
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 
 @dataclass
@@ -193,15 +193,15 @@ def _fix_paragraphs(
     return fixed_count
 
 
-def fix_document(config: Config, fixed_dir: str = "./fixed_docs") -> FixResult | None:
+def fix_document(config: Config, fixed_dir: Path) -> FixResult | None:
     """根据当前 rules.yaml 对可修复项进行自动修复。"""
 
     docx_path = config.docx
     format_config: FormatConfig = config.format_config
 
-    os.makedirs(fixed_dir, exist_ok=True)
+    fixed_dir.mkdir(parents=True, exist_ok=True)
 
-    doc: DocumentObject = Document(docx_path)
+    doc: DocumentObject = Document(str(docx_path))
     utils.attach_paragraph_indices(doc)
     structure = DocumentStructure(doc)
 

@@ -1,20 +1,26 @@
 import os
 import shutil
+from pathlib import Path
 from hashlib import md5
 from functools import lru_cache
 from fastapi import UploadFile
-from pp4mat.config_converter import convert_config, Config, Args
+from pp4mat.config_converter import Config, Args
 from pp4mat.format_checker import check_format
 from pp4mat.report import generate_report
 from pp4mat.fixer import fix_document
 
 from app.services.stats_store import bump_counter, read_stats
 
-UPLOAD_DIR = "./uploads"
-REPORT_DIR = "./reports"
+UPLOAD_DIR = Path("./uploads")
+REPORT_DIR = Path("./reports")
+LOG_DIR = Path("./logs")
+CONFIG_DIR = Path("./configs")
+FIXED_DIR = Path("./fixed_docs")
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(REPORT_DIR, exist_ok=True)
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+REPORT_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+FIXED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def process_paper(file: UploadFile):
@@ -23,10 +29,10 @@ def process_paper(file: UploadFile):
     # 重命名并检查文件是否存在
     filename = f"{md5(file.file.read()).hexdigest()}.docx"
     file.file.seek(0)  # 重置文件指针位置
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    report_path = os.path.join(REPORT_DIR, f"{filename}.md")
-    if os.path.exists(file_path) and os.path.exists(report_path):
-        report = open(report_path, 'r', encoding='utf-8').read()
+    file_path = UPLOAD_DIR / filename
+    report_path = REPORT_DIR / f"{filename}.md"
+    if file_path.exists() and report_path.exists():
+        report = report_path.read_text(encoding='utf-8')
         stats = bump_counter("total_checks", 1)
         return {"status": "fail", "report": report, "stats": stats, "filename": filename}
 
@@ -52,7 +58,7 @@ def fix_paper(file: UploadFile):
 
     filename = f"{md5(file.file.read()).hexdigest()}.docx"
     file.file.seek(0)
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    file_path = UPLOAD_DIR / filename
 
     # 保存上传的文件（覆盖旧文件，确保基于最新上传内容修复）
     with open(file_path, "wb") as f:
@@ -61,7 +67,7 @@ def fix_paper(file: UploadFile):
     config = get_partial_config()
     config.docx = file_path
 
-    result = fix_document(config, fixed_dir="./fixed_docs")
+    result = fix_document(config, fixed_dir=FIXED_DIR)
     if result is None:
         # 没有可修复项
         stats = bump_counter("total_fixes", 0)
@@ -86,11 +92,11 @@ def fix_paper(file: UploadFile):
 @lru_cache(maxsize=1)
 def get_partial_config() -> Config:
     args = Args(
-        config=os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, 'configs', "rules.yaml"),
-        docx="",
+        config=CONFIG_DIR / "rules.yaml",
+        docx=Path(""),  # 占位，后续会覆盖
         debug=False,
         output=REPORT_DIR,
-        log_dir=None
+        log_dir=LOG_DIR
     )
     config = Config(args)
     return config

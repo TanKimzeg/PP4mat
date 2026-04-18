@@ -1,58 +1,95 @@
+import datetime
 import logging
 import sys
+from pathlib import Path
+from logging.handlers import RotatingFileHandler
+
 import colorama
-import datetime
-import os
 
 # Initialize colorama for Windows compatibility
 colorama.init(autoreset=True)
 
-def setup_logger(name=__package__, level=logging.INFO, log_dir:str|None=None) -> logging.Logger:
-    """创建并配置日志记录器"""
+
+def setup_logger(
+    name: str | None = None,
+    level: int = logging.INFO,
+    log_dir: Path | None = None,
+    log_file: str | None = None,
+    console: bool = True,
+    file: bool | None = None,
+    propagate: bool = False,
+    max_bytes: int = 10 * 1024 * 1024,
+    backup_count: int = 5,
+) -> logging.Logger:
+    """创建并配置日志记录器（极简版）。
+
+    约定：
+    - 只在第一次调用时挂载 handler（避免重复输出）
+    - 后续调用仅更新 logger 的 level/propagate
+    - console/file handler 分离：控制台有颜色，文件无颜色
+    - file=None：仅对入口 logger（pp4mat/__main__）默认启用文件日志
+    """
+
     class ColorFormatter(logging.Formatter):
-        """自定义日志格式化器，添加颜色到日志级别"""
         LEVEL_COLORS = {
-            "DEBUG": colorama.Fore.BLUE,  # 蓝色
-            "INFO": colorama.Fore.GREEN,  # 绿色
-            "WARNING": colorama.Fore.YELLOW,  # 黄色
-            "ERROR": colorama.Fore.RED,  # 红色
-            "CRITICAL": colorama.Fore.MAGENTA,  # 紫色
+            "DEBUG": colorama.Fore.BLUE,
+            "INFO": colorama.Fore.GREEN,
+            "WARNING": colorama.Fore.YELLOW,
+            "ERROR": colorama.Fore.RED,
+            "CRITICAL": colorama.Fore.MAGENTA,
         }
 
-        def format(self, record):
-            levelname = record.levelname
-            if levelname in self.LEVEL_COLORS:
-                record.levelname = f"{self.LEVEL_COLORS[levelname]}{levelname}{colorama.Style.RESET_ALL}"
-            return super().format(record)
-    # 创建日志记录器
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    
-    # 禁用传播
-    logger.propagate = False
+        def format(self, record: logging.LogRecord) -> str:
+            original_levelname = record.levelname
+            try:
+                color = self.LEVEL_COLORS.get(original_levelname)
+                if color:
+                    record.levelname = f"{color}{original_levelname}{colorama.Style.RESET_ALL}"
+                return super().format(record)
+            finally:
+                record.levelname = original_levelname
 
-    # 避免重复添加处理器（防止多次调用时重复日志）
-    if not logger.handlers:
-        # 创建格式化器
-        consoler_formatter = ColorFormatter(
-            '[%(asctime)s-%(levelname)s] %(name)s: %(message)s',
-            datefmt='%H:%M:%S'
-        )
-        file_formatter = logging.Formatter(
-            '[%(asctime)s-%(levelname)s] %(name)s: %(message)s',
-            datefmt='%H:%M:%S'
-        )
-        
-        if logger.level != logging.DEBUG and log_dir:
-            os.makedirs(log_dir, exist_ok=True)
-            file_handler = logging.FileHandler(f'{log_dir}/{datetime.datetime.now().strftime("%H%M%S")}.log', encoding='utf-8')
-            file_handler.setFormatter(file_formatter)
-            file_handler.setLevel(logging.WARNING)
-            logger.addHandler(file_handler)
-        # 创建控制台处理器
+    resolved_name = name or (__package__ if __package__ else "pp4mat")
+    logger = logging.getLogger(resolved_name)
+
+    # 每次调用都允许更新基础属性
+    logger.setLevel(level)
+    logger.propagate = propagate
+
+    # 已初始化则直接返回（极简：不再响应 console/file 的开关变化）
+    if getattr(logger, "_pp4mat_configured", False):
+        return logger
+
+    fmt = "[%(asctime)s-%(levelname)s] %(name)s: %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+
+    # file=None 的默认策略
+    if file is None:
+        file = resolved_name in {"pp4mat", "__main__"}
+
+    if console:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(consoler_formatter)
+        console_handler.setLevel(level)
+        console_handler.setFormatter(ColorFormatter(fmt, datefmt=datefmt))
         logger.addHandler(console_handler)
-        # 疑似logger的Bug,这两行Handler的顺序不能交换,否则日志文件会输出控制台的颜色代码
-    
+
+    if file:
+        _log_dir = log_dir or Path.cwd() / "logs"
+        _log_dir.mkdir(parents=True, exist_ok=True)
+
+        _log_file = log_file or f"{datetime.date.today().strftime('%Y%m%d')}.log"
+        log_path = _log_dir / _log_file
+
+        file_handler = RotatingFileHandler(
+            filename=log_path,
+            maxBytes=max_bytes,
+            backupCount=backup_count,
+            encoding="utf-8",
+        )
+        # 文件建议更全，控制台由 level 控制噪声
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(logging.Formatter(fmt, datefmt=datefmt))
+        logger.addHandler(file_handler)
+
+    logger._pp4mat_configured = True  # type: ignore[attr-defined]
     return logger

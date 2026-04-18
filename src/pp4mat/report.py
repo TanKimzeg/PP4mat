@@ -1,14 +1,15 @@
 import os
+from pathlib import Path
 from jinja2 import Template
 from datetime import datetime
 
 def generate_report(filename: str, paper_info:dict[str,str], 
-                    errors: dict[str, list[str]], output_path: str):
+                    errors: dict[str, list[str]], output_dir: Path) -> str:
     """
     使用模板生成 Markdown 格式的报告
     """
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
 
     template = Template("""# 论文格式检测结果
                         
@@ -41,6 +42,6 @@ def generate_report(filename: str, paper_info:dict[str,str],
         student_id=paper_info.get("学号", "未提供"),
         date=datetime.now().strftime("%Y年%m月%d日%H时%M分"),
     )
-    with open(os.path.join(output_path, f"{filename}.md"), 'w', encoding='utf-8') as f:
+    with open(output_dir / f"{filename}.md", 'w', encoding='utf-8') as f:
         f.write(report)
     return report

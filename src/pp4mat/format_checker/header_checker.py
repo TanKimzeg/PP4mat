@@ -17,9 +17,9 @@ from pp4mat.format_checker.utils import (
 from pp4mat.config_converter import FormatConfig
 from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 from pp4mat.logger import setup_logger
-from pp4mat.skillhub.location import DocumentStructure
+from pp4mat.location import DocumentStructure
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class HeaderChecker(FormatChecker):
     def __init__(self, doc: DocumentObject, config: FormatConfig, errors: FormatErrors) -> None:

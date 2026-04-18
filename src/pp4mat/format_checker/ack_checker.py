@@ -16,7 +16,7 @@ from pp4mat.format_checker.utils import (
 )
 from pp4mat.logger import setup_logger
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class AcknowledgementChecker(FormatChecker):
     def __init__(self, paragraphs: list[Paragraph], doc: DocumentObject, config: FormatConfig, errors: FormatErrors) -> None:

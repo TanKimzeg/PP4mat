@@ -12,7 +12,7 @@ from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 from docx.document import Document as DocumentObject
 
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class TableChecker(FormatChecker):
     def __init__(self, doc: DocumentObject, config: FormatConfig, errors: FormatErrors) -> None:

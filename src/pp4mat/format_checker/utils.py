@@ -9,6 +9,7 @@ import re
 
 from pp4mat.config_converter.config_handle import FormatConfig
 
+# 工具模块在 import 时不应创建文件日志（避免被其它模块导入时反复创建/抢占）。
 logger = setup_logger(__package__)
 
 def get_indentation(p: Paragraph) -> float:
@@ -458,7 +459,6 @@ def cover_info_from_textbox(win32doc) -> dict[str, str]:
     return info
 
 def extract_textbox_content(doc) -> list[str]:
-    import re
     """
     提取 Word 文档中的文本框内容。
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import logging
+from pathlib import Path
 from typing import Any
 from collections.abc import Iterable
 from argparse import Namespace
@@ -13,19 +14,19 @@ from ruamel.yaml.error import YAMLError
 from pp4mat.logger import setup_logger
 from pp4mat.config_converter.converter import Converter, convert_config
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 
 @dataclass
 class Args(Namespace):
-    docx: str
-    config: str
+    docx: Path
+    config: Path
     debug: bool
-    log_dir: str | None
-    output: str
+    log_dir: Path
+    output: Path
 
 class FormatConfig:
-    def __init__(self, config_path: str) -> None:
+    def __init__(self, config_path: Path) -> None:
         self.yaml = YAML()
         self.config_path = config_path
         self.reload()

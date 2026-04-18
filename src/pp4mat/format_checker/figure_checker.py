@@ -12,7 +12,7 @@ from pp4mat.format_checker.utils import (
 from pp4mat.config_converter import FormatConfig
 from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 
 @singledispatch  # TODO: unable to find the expected picture by Shape.Type

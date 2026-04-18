@@ -5,7 +5,7 @@ from pp4mat.logger import setup_logger
 from pp4mat.config_converter import FormatConfig
 from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class CitationChecker(FormatChecker):
     def __init__(self, sections: dict[str, list[Paragraph]], config: FormatConfig, errors: FormatErrors) -> None:

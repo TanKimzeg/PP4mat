@@ -3,7 +3,7 @@ from typing import Any
 from pp4mat.logger import setup_logger
 from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class CoverInfoChecker(FormatChecker):
     def __init__(self, cover_info: dict[str, str], errors: FormatErrors) -> None:

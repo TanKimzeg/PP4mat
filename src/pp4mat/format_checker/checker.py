@@ -1,4 +1,4 @@
-import os
+import logging
 from collections import defaultdict
 from docx import Document
 from docx.document import Document as DocumentObject
@@ -22,7 +22,7 @@ from pp4mat.format_checker.ack_checker import AcknowledgementChecker
 from pp4mat.format_checker.citation_checker import CitationChecker
 from pp4mat.format_checker.words_checker import WordsChecker
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 def title_checker(document: DocumentObject, format_config: FormatConfig) -> None:
     logger.info("检查标题格式...")
@@ -61,16 +61,24 @@ def abstract_checker(abstact: list[Paragraph], format_config: FormatConfig) -> N
 
 def check_format(config: Config) -> tuple[dict,dict]:
     errors: FormatErrors = defaultdict(list)
-    docx_path = config.docx
+    docx_path = str(config.docx.expanduser().resolve())
     format_config: FormatConfig = config.format_config
-    setup_logger(__package__,level=config.debug, log_dir=config.log_dir)
+
+    # 统一在业务入口初始化一次日志：这里启用文件日志，子模块仅 console/file=False 复用。
+    setup_logger(
+        __package__,
+        level=(logging.DEBUG if config.debug else logging.INFO),
+        log_dir=config.log_dir,
+        console=True,
+        file=True,
+    )
 
     document = Document(docx_path)
     utils.attach_paragraph_indices(document)
     sections = utils.get_sections(document)
 
     word = win32com.client.Dispatch("Word.Application")
-    win32doc = word.Documents.Open(os.path.abspath(docx_path))
+    win32doc = word.Documents.Open(docx_path)
 
     try:
         cover_info = utils.cover_info_from_textbox(win32doc)

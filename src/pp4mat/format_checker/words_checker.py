@@ -4,7 +4,7 @@ from pp4mat.format_checker.protocols import FormatChecker, FormatErrors
 from pp4mat.logger import setup_logger
 from pp4mat.format_checker import utils
 
-logger = setup_logger(__package__)
+logger = setup_logger(__package__, console=True, file=False)
 
 class WordsChecker(FormatChecker):
     def __init__(self, doc: DocumentObject, config: FormatConfig, errors: FormatErrors) -> None:
