@@ -73,7 +73,7 @@ npm install
 - `--docx`：论文 docx 路径
 - `--config`：规则文件路径（默认 `./rules.yaml`，仓库内建议用 `./configs/rules.yaml`）
 - `--output`：报告输出目录（默认 `./reports`）
-- `--log_dir`：日志目录（默认 `./error_logs`）
+- `--log_dir`：日志目录（默认 `./logs`）
 - `--debug`：开启调试日志
 
 输出：
