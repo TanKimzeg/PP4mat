@@ -487,18 +487,6 @@ def extract_textbox_content(doc) -> list[str]:
     textbox_contents = [content for _, content in textbox_contents]  # 提取内容
     return textbox_contents
 
-def count_citations(locations: dict[str, list[Paragraph]]) -> int:
-    cnt = 0
-    import re
-    citation_pattern = r'\[[1-9]\d*\]'
-    for s,pl in locations.items():
-        if s != "参考文献":
-            for p in pl:
-                sub_string = re.findall(citation_pattern, p.text)
-                cnt += len(sub_string)
-                if len(sub_string) > 0:
-                    logger.debug(f"段落：{p.text.strip()[:5]}...{'...'.join(sub_string)}... 包含 {len(sub_string)} 个引用")
-    return cnt
 
 def get_effective_line_spacing(p: Paragraph) -> float | None:
     """返回“多倍行距”的倍数（如 1.0/1.5/2.0），无法判定则返回 None。
