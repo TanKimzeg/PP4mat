@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || "";
 
 function App() {
     const [file, setFile] = useState(null);
@@ -180,7 +181,10 @@ function App() {
                 )}
 
                 <footer>
-                    <div>© {new Date().getFullYear()} PPSUC · <a href="https://github.com/TanKimzeg/PP4mat" target="_blank" rel="noreferrer">Paper4mat</a></div>
+                    <div>
+                        © {new Date().getFullYear()} PPSUC · <a href="https://github.com/TanKimzeg/PP4mat" target="_blank" rel="noreferrer">Paper4mat</a>
+                        {APP_VERSION ? <span> v{APP_VERSION}</span> : null}
+                    </div>
                     <div className="footer-stats">
                         <span>累计检测次数：{stats?.total_checks ?? 0}</span>
                         <span className="dot">·</span>
