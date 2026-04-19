@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from pp4mat.config_converter import Config, Args
 from pp4mat.format_checker import check_format
 from pp4mat.report import generate_report
@@ -16,11 +17,11 @@ def main() -> None:
 
     # Load the format rules
     args = Args(
-        docx=args.docx,
-        config=args.config,
+        docx=Path(args.docx),
+        config=Path(args.config),
         debug=args.debug,
-        log_dir=args.log_dir,
-        output=args.output
+        log_dir=Path(args.log_dir),
+        output=Path(args.output)
     )
     config = Config(args)
 
@@ -28,7 +29,7 @@ def main() -> None:
     try:
         errors, cover_info = check_format(config)
 
-        generate_report(args.docx, cover_info, errors, config.output)
+        generate_report(str(args.docx), cover_info, errors, config.output)
         print(f"报告已生成，请查看{config.output}目录下的 Markdown 文件。")
     except Exception:
         import traceback
