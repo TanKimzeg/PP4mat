@@ -357,12 +357,13 @@ def get_sections(doc: DocumentObject) -> dict[str, list[Paragraph]]:
         while p_idx < len(paragraphs) and not end:
             for j in range(i + 1, len(undergraduate_sections)):
                 if (norm_text(paragraphs[p_idx].text).startswith(undergraduate_sections[j]) if i + 1 < len(undergraduate_sections) else "") and not (
-                    _style_name(paragraphs[p_idx]).upper().startswith("TOC")):
+                    undergraduate_sections[j] != "目录" and _is_toc_paragraph(paragraphs[p_idx])):
                     end = True
                     break
             if end:
                 break
-            if norm_text(paragraphs[p_idx].text).startswith(section):
+            if norm_text(paragraphs[p_idx].text).startswith(section) and not (
+                section != "目录" and _is_toc_paragraph(paragraphs[p_idx])):
                 begin = True
             if begin:
                 undergraduate_location[section.strip('：').strip(':')].append(paragraphs[p_idx])
