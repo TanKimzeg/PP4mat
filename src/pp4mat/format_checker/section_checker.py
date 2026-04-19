@@ -27,9 +27,13 @@ class SectionChecker(FormatChecker):
             "参考文献", 
             "附录"
         ]
+        backet = errors.setdefault("章节检测", [])
         for section in undergraduate_sections:
             if section not in sections or len(sections[section]) == 0:
                 logger.error(f"\"{section}\"缺失或位置不正确")
-                errors["章节检测"].append(f"\"{section}\"缺失或位置不正确!请使用模板,注意空格、冒号")
+                if section in ["目录", "致谢"]:  # 目录和致谢可以视为可选项，缺失时仅警告
+                    backet.append(f"\"{section}\"部分缺失或位置不正确！请查看模板格式，注意冒号。")
+                else:
+                    backet.append(f"\"{section}\"缺失或位置不正确！请查看模板格式。")
             else:
                 logger.info(f"\"{section}\"部分存在 {len(sections[section])} 个段落")
