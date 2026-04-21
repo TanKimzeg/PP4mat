@@ -9,7 +9,6 @@ import re
 
 from pp4mat.config_converter.config_handle import FormatConfig
 
-# 工具模块在 import 时不应创建文件日志（避免被其它模块导入时反复创建/抢占）。
 logger = setup_logger(__package__)
 
 def get_indentation(p: Paragraph) -> float:
@@ -774,4 +773,27 @@ class Formatter:
             42: "初号",
         }
         return size_map.get(size, f"{size} pt")
+
+def is_reference_entry(par: Paragraph) -> bool:
+    """判断段落是否为参考文献条目。
+
+    兼容两种常见情况：
+    1) 手工输入编号："[1]"、"[12]" 开头（编号会出现在 p.text）
+    2) 自动编号/列表编号：编号不一定出现在 p.text，但 XML 会有 w:numPr
+
+    注：这里不尝试解析编号的具体显示格式，只做“条目段落”识别。
+    """
+    t = (par.text or "").strip()
+    if re.match(r"^\[[1-9]\d*\]", t):
+        return True
+
+    # 自动编号（Word 列表）
+    try:
+        el = getattr(par, "_p", None)
+        if el is not None and bool(el.xpath('.//w:pPr/w:numPr')):
+            return True
+    except Exception:
+        pass
+
+    return False
 
