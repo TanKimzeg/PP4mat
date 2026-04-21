@@ -132,7 +132,7 @@ wheels = [
 
 [[package]]
 name = "pp4mat"
-version = "0.5.1"
+version = "0.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
