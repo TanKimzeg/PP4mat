@@ -59,17 +59,17 @@ class HeaderChecker(FormatChecker):
             if not cfg:
                 # 未配置则跳过
                 continue
-            if norm_text(p.text).startswith("参考文献："):
-                cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制参考文献标题左对齐
-            if norm_text(p.text).startswith("附录："):
-                cfg["alignment"] = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制附录标题左对齐
-
             loc = structure.get(i)
             loc_str = f"P{i} [{loc.short()}]"
             preview = (p.text or "").strip()[:30]
 
             # 对齐
             expected_align = cfg.get("alignment")
+            t_norm = norm_text(p.text)
+            if t_norm.startswith("参考文献："):
+                expected_align = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制参考文献标题左对齐
+            if t_norm.startswith("附录："):
+                expected_align = WD_PARAGRAPH_ALIGNMENT.LEFT  # 强制附录标题左对齐
             actual_align = get_effective_alignment(p, document=document)
             if expected_align is not None and actual_align != expected_align:
                 errors["标题检测"].append(
