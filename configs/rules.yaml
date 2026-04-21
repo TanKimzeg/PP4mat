@@ -41,7 +41,7 @@
     "font_western": "仿宋"
     "font_size": 12  # 小四
     "alignment": "JUSTIFY"
-    "line_spacing": 1.5
+    "line_spacing": 1.0
 
 "page":
     "margins":
