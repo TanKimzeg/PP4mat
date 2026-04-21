@@ -37,7 +37,8 @@ def figure_check(doc: Any, format_config: FormatConfig, errors: FormatErrors) ->
                     logger.error(f"图片{picture_cnt}未找到对应的标题段落，请检查文档格式。")
                     errors["图片检测"].append(f"图片{picture_cnt}未找到对应的标题段落")
                     continue
-                if not next_p.Range.Text.strip().startswith(f"图{picture_cnt} "):
+                if not any([next_p.Range.Text.strip().startswith(f"图{picture_cnt} "),
+                             next_p.Range.Text.strip().startswith(f"图 {picture_cnt} ")]):
                     logger.error(
                         f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：{next_p.Range.Text.strip()}。请注意空格、编号。"
                     )
@@ -71,7 +72,8 @@ def _(document: DocumentObject, format_config: FormatConfig, errors: FormatError
                 next_p = paragraphs[i + 1]
                 if next_p.text.strip().startswith("图"):
                     picture_cnt += 1
-                    if not next_p.text.strip().startswith(f"图{picture_cnt} "):
+                    if not any([next_p.text.strip().startswith(f"图{picture_cnt} "),
+                                 next_p.text.strip().startswith(f"图 {picture_cnt} ")]):
                         logger.error(
                             f"图片{picture_cnt}的标题格式错误，应该以\"图{picture_cnt} \"开头，但实际为：\"{next_p.text.strip()}\"。请注意空格、编号。"
                         )

@@ -44,7 +44,8 @@ class TableChecker(FormatChecker):
 
             if table_index is not None and table_index > 0:
                 header_p = paragraphs[table_index]
-                if not header_p.text.strip().startswith(f"表{i+1} "):
+                if not any([header_p.text.strip().startswith(f"表{i+1} "),
+                            header_p.text.strip().startswith(f"表 {i+1} ")]):
                     msg = f"表格{i+1}的标题格式错误，应该以\"表{i+1} \"开头，但实际为：\"{header_p.text.strip()}\""
                     logger.error(msg)
                     bucket.append(msg)
